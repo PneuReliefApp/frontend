@@ -3,25 +3,12 @@ import { View, Text, Button, StyleSheet } from "react-native";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { checkConnection } from "../services/api";
 
-export default function HomeScreen() {
-  const [connected, setConnected] = useState<boolean | null>(null);
+export default function SettingsScreen() {
 
-  useEffect(() => {
-    const testConnection = async () => {
-      const ok = await checkConnection();
-      setConnected(ok);
-    };
-    testConnection();
-  }, []);
   return (
     <View style={styles.container}>
       <Text style={styles.text}>
-        Backend status:{" "}
-        {connected === null
-          ? "Checking..."
-          : connected
-          ? "✅ Connected"
-          : "❌ Not Connected"}
+        Settings Screen
       </Text>
     </View>
   );
