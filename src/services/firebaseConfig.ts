@@ -1,24 +1,31 @@
 // frontend/src/services/firebaseConfig.ts
-import { initializeApp } from "firebase/app";
-import { getAnalytics, isSupported } from "firebase/analytics";
+import { initializeApp } from 'firebase/app';
+import { getAuth } from 'firebase/auth';
+import { getFirestore } from 'firebase/firestore';
+import { getAnalytics, isSupported } from 'firebase/analytics';
 
 const firebaseConfig = {
-  apiKey: "AIzaSyBP8zixixwSYeYqkO_6TcJ7MNn0VftqQIM",
-  authDomain: "project-pneurelief.firebaseapp.com",
-  projectId: "project-pneurelief",
-  storageBucket: "project-pneurelief.firebasestorage.app",
-  messagingSenderId: "149894939350",
-  appId: "1:149894939350:web:6f70f0722b65fc1ee0ff77",
-  measurementId: "G-13H29TEZM1",
+  apiKey: process.env.EXPO_PUBLIC_FIREBASE_API_KEY,
+  authDomain: process.env.EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN,
+  projectId: process.env.EXPO_PUBLIC_FIREBASE_PROJECT_ID,
+  storageBucket: process.env.EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: process.env.EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+  appId: process.env.EXPO_PUBLIC_FIREBASE_APP_ID,
+  measurementId: process.env.EXPO_PUBLIC_FIREBASE_MEASUREMENT_ID,
 };
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
+export const auth = getAuth(app);
+export const db = getFirestore(app);
 
-// Analytics is optional (only works on web)
-isSupported().then((yes) => {
-  if (yes) getAnalytics(app);
+// Optional: Analytics (only works in web)
+isSupported().then((supported) => {
+  if (supported) getAnalytics(app);
 });
 
 export default app;
+
+
+
 

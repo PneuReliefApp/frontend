@@ -4,10 +4,13 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { Provider as PaperProvider } from 'react-native-paper';
 
+import app from './src/services/firebaseConfig';
+
 import HomeScreen from './src/screens/HomeScreen';
 import PressureMapScreen from './src/screens/PressureMapScreen';
 import SettingsScreen from './src/screens/SettingsScreen';
 import HistoryScreen from './src/screens/HistoryScreen';
+import AuthScreen from './src/screens/AuthScreen';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 const Tab = createBottomTabNavigator();
@@ -52,6 +55,7 @@ export default function App() {
             <Tab.Screen name="PressureMap" component={PressureMapScreen} />
             <Tab.Screen name="History" component={HistoryScreen} />
             <Tab.Screen name="Settings" component={SettingsScreen} />
+            <Tab.Screen name="Auth" component={AuthScreen} />
           </Tab.Navigator>
         </NavigationContainer>
       </SafeAreaProvider>
