@@ -2,7 +2,7 @@ import * as React from "react";
 import { SafeAreaView, ScrollView, StyleSheet, View } from "react-native";
 import { SegmentedButtons, Card, Title, Paragraph, useTheme, Text } from "react-native-paper";
 
-const HistoryScreen: React.FC = () => {
+const NotifsScreen: React.FC = () => {
   const theme = useTheme();
   const [tab, setTab] = React.useState<"alerts" | "logs">("alerts");
 
@@ -30,7 +30,6 @@ const HistoryScreen: React.FC = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <Text style={styles.title}>Notifications</Text>
       <View style={styles.segmentedContainer}>
         <SegmentedButtons
           value={tab}
@@ -50,7 +49,7 @@ const HistoryScreen: React.FC = () => {
   );
 };
 
-export default HistoryScreen;
+export default NotifsScreen;
 
 const styles = StyleSheet.create({
   container: {

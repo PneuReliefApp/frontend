@@ -44,6 +44,16 @@ export default function HomeScreen() {
   // ✅ Firestore data state
   const [patients, setPatients] = useState<DocumentData[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
+  const [connected, setConnected] = React.useState<boolean | null>(null);
+
+  // Check backend connection
+  React.useEffect(() => {
+    const testConnection = async () => {
+      const ok = await checkConnection();
+      setConnected(ok);
+    };
+    testConnection();
+  }, []);
 
   // --- Function to test Firestore ---
   const testFirestoreConnection = async () => {
@@ -127,6 +137,56 @@ export default function HomeScreen() {
   // --- Render UI ---
   return (
     <View style={styles.container}>
+      <Card style={styles.welcomeCard} elevation={4}>
+        <ImageBackground
+          source={{
+            uri: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTIpm4TIKo77tuSmYWg2jZcdEtjQOIsp3HMoQ&s",
+          }}
+          style={styles.welcomeBackground}
+          imageStyle={{ borderRadius: 12 }}
+        >
+          <View style={styles.welcomeContent}>
+            <Avatar.Image
+              size={80}
+              source={{
+                uri: "https://img.freepik.com/free-vector/fashionable-avatar-girl_24877-81624.jpg?semt=ais_hybrid&w=740&q=80",
+              }}
+            />
+            <View style={styles.welcomeTextContainer}>
+              <Text variant="headlineSmall" style={styles.welcomeText}>
+                Welcome, Melanie!
+              </Text>
+              <Text variant="bodyMedium" style={styles.subText}>
+                How’s it going today?
+              </Text>
+            </View>
+          </View>
+        </ImageBackground>
+      </Card>
+
+      {/* Dashboard Section */}
+      <Card style={styles.sectionCard} elevation={2}>
+        <Card.Content>
+          <Text style={{ marginTop: 4 }}>Dashboard Section</Text>
+        </Card.Content>
+      </Card>
+
+      {/* Backend Status */}
+      <Card style={styles.sectionCard} elevation={2}>
+        <Card.Content>
+          <Text variant="titleMedium" style={{ fontWeight: "bold" }}>
+            Backend Status
+          </Text>
+          <Text style={{ marginTop: 4 }}>
+            {connected === null
+              ? "Checking..."
+              : connected
+              ? "✅ Connected"
+              : "❌ Not Connected"}
+          </Text>
+        </Card.Content>
+      </Card>
+
       <Text style={styles.header}>🔧 System Connectivity</Text>
 
       <View style={styles.statusBox}>
@@ -191,9 +251,9 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     justifyContent: "flex-start",
-    alignItems: "center",
     backgroundColor: "#fff",
     paddingTop: 60,
+    padding: 20
   },
   header: {
     fontSize: 22,
@@ -236,5 +296,32 @@ const styles = StyleSheet.create({
   deleteText: {
     fontSize: 20,
     color: "red",
+  },
+  welcomeCard: {
+    marginBottom: 20,
+  },
+  welcomeBackground: {
+    height: 140,
+    justifyContent: "center",
+    padding: 16,
+  },
+  welcomeContent: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  welcomeTextContainer: {
+    marginLeft: 16,
+    flex: 1,
+  },
+  welcomeText: {
+    color: "#fff",
+    fontWeight: "700",
+  },
+  subText: {
+    color: "#fff",
+    marginTop: 4,
+  },
+  sectionCard: {
+    marginBottom: 16,
   },
 });

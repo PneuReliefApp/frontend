@@ -1,73 +1,96 @@
 import React from "react";
-import { View, StyleSheet, Image } from "react-native";
-import { List, Avatar, Divider, useTheme } from "react-native-paper";
+import { View, StyleSheet, ScrollView } from "react-native";
+import {
+  List,
+  Avatar,
+  Divider,
+  useTheme,
+  TouchableRipple,
+  Text,
+} from "react-native-paper";
+import { NativeStackScreenProps } from "@react-navigation/native-stack";
 
-type ProfilePageProps = {
-  onEditProfile?: () => void;
-  onHistory?: () => void;
-  onDeviceUsage?: () => void;
-  onAccessibility?: () => void;
-  onLogout?: () => void;
-};
+type ProfilePageProps = NativeStackScreenProps<any, any>;
 
-const SettingsScreen: React.FC<ProfilePageProps> = ({
-  onEditProfile,
-  onHistory,
-  onDeviceUsage,
-  onAccessibility,
-  onLogout,
-}) => {
+const SettingsScreen: React.FC<ProfilePageProps> = ({ navigation }) => {
   const theme = useTheme();
 
+  const menuItems = [
+    {
+      title: "Edit Profile",
+      icon: "account-edit",
+      onPress: () => navigation.navigate("EditProfile"),
+    },
+    {
+      title: "Notifications",
+      icon: "bell",
+      onPress: () => navigation.navigate("Notifications"),
+    },
+    {
+      title: "Calibrations",
+      icon: "history",
+      onPress: () => navigation.navigate("Calibrations"),
+    },
+    {
+      title: "Device Usage",
+      icon: "tablet-dashboard",
+      onPress: () => navigation.navigate("DeviceUsage"),
+    },
+    {
+      title: "Accessibility",
+      icon: "access-point",
+      onPress: () => navigation.navigate("Accessibility"),
+    },
+  ];
+
   return (
-    <View style={styles.container}>
-      {/* Profile Picture */}
-      <View style={styles.avatarContainer}>
-        <Avatar.Image
-          size={120}
-          source={{
-            uri: "https://img.freepik.com/free-vector/fashionable-avatar-girl_24877-81624.jpg?semt=ais_hybrid&w=740&q=80", // replace with user profile pic
-          }}
-        />
+    <ScrollView style={styles.container}>
+      {/* Profile Section */}
+      <View style={styles.profileSection}>
+        <View style={styles.avatarWrapper}>
+          <Avatar.Image
+            size={120}
+            source={{
+              uri: "https://img.freepik.com/free-vector/fashionable-avatar-girl_24877-81624.jpg?semt=ais_hybrid&w=740&q=80",
+            }}
+          />
+        </View>
+        <Text style={styles.username}>Melanie Choi</Text>
+        <Text style={styles.subtitle}>View Profile</Text>
       </View>
 
-      {/* Username */}
-      <List.Subheader style={styles.username}>Melanie Choi</List.Subheader>
+      {/* Menu Section */}
+      <View style={styles.menuSection}>
+        {menuItems.map((item, index) => (
+          <TouchableRipple
+            key={index}
+            onPress={item.onPress}
+            rippleColor="rgba(0,0,0,0.1)"
+          >
+            <View style={styles.menuItem}>
+              <List.Icon icon={item.icon} />
+              <Text style={styles.menuText}>{item.title}</Text>
+              <List.Icon icon="chevron-right" />
+            </View>
+          </TouchableRipple>
+        ))}
 
-      {/* Menu / Options */}
-      <View style={styles.menuContainer}>
-        <List.Item
-          title="Edit Profile"
-          left={(props) => <List.Icon {...props} icon="account-edit" />}
-          onPress={onEditProfile}
-        />
-        <Divider />
-        <List.Item
-          title="History & Data"
-          left={(props) => <List.Icon {...props} icon="history" />}
-          onPress={onHistory}
-        />
-        <Divider />
-        <List.Item
-          title="Device Usage"
-          left={(props) => <List.Icon {...props} icon="tablet-dashboard" />}
-          onPress={onDeviceUsage}
-        />
-        <Divider />
-        <List.Item
-          title="Accessibility"
-          left={(props) => <List.Icon {...props} icon="access-point" />}
-          onPress={onAccessibility}
-        />
-        <Divider />
-        <List.Item
-          title="Logout"
-          left={(props) => <List.Icon {...props} icon="logout" />}
-          onPress={onLogout}
-          titleStyle={{ color: theme.colors.error }}
-        />
+        <Divider style={{ marginVertical: 20 }} />
+
+        {/* Logout */}
+        <TouchableRipple
+          onPress={() => console.log("Logout pressed")}
+          rippleColor="rgba(255,0,0,0.1)"
+        >
+          <View style={styles.menuItem}>
+            <List.Icon color={theme.colors.error} icon="logout" />
+            <Text style={[styles.menuText, { color: theme.colors.error }]}>
+              Logout
+            </Text>
+          </View>
+        </TouchableRipple>
       </View>
-    </View>
+    </ScrollView>
   );
 };
 
@@ -76,24 +99,47 @@ export default SettingsScreen;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#fff",
-    paddingHorizontal: 20,
-    paddingTop: 50,
-    marginTop: 50,
+    backgroundColor: "#f6f6f6",
+    marginTop: 50
   },
-  avatarContainer: {
+  profileSection: {
     alignItems: "center",
+    paddingVertical: 40,
+    backgroundColor: "#fff",
+    marginBottom: 20,
+    borderBottomLeftRadius: 20,
+    borderBottomRightRadius: 20,
+    shadowColor: "#000",
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
+    elevation: 5,
+  },
+  avatarWrapper: {
     marginBottom: 15,
   },
   username: {
-    textAlign: "center",
-    fontSize: 20,
-    marginBottom: 30,
-    fontWeight: "600",
+    fontSize: 22,
+    fontWeight: "700",
   },
-  menuContainer: {
-    backgroundColor: "#f9f9f9",
+  subtitle: {
+    fontSize: 14,
+    color: "gray",
+    marginTop: 4,
+  },
+  menuSection: {
+    paddingHorizontal: 10,
+  },
+  menuItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 16,
+    paddingHorizontal: 10,
+    backgroundColor: "#fff",
     borderRadius: 10,
-    overflow: "hidden",
+  },
+  menuText: {
+    flex: 1,
+    fontSize: 16,
+    marginLeft: 10,
   },
 });

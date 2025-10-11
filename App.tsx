@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { Provider as PaperProvider } from 'react-native-paper';
 
@@ -9,11 +10,24 @@ import app from './src/services/firebaseConfig';
 import HomeScreen from './src/screens/HomeScreen';
 import PressureMapScreen from './src/screens/PressureMapScreen';
 import SettingsScreen from './src/screens/SettingsScreen';
-import HistoryScreen from './src/screens/HistoryScreen';
+import NotifsScreen from './src/screens/Settings/NotifsScreen';
 import AuthScreen from './src/screens/AuthScreen';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import CalibrationsScreen from'./src/screens/Settings/CalibrationsScreen';
 
 const Tab = createBottomTabNavigator();
+const SettingsStack = createNativeStackNavigator();
+
+function SettingsStackNavigator() {
+  return (
+    <SettingsStack.Navigator screenOptions={{ headerShown: true }}>
+      <SettingsStack.Screen name="SettingsMain" component={SettingsScreen} options={{ title: 'Settings' }} />
+      <SettingsStack.Screen name="Notifications" component={NotifsScreen} />
+      <SettingsStack.Screen name="Calibrations" component={CalibrationsScreen} />
+    </SettingsStack.Navigator>
+  );
+}
+
 
 export default function App() {
   return (
@@ -34,9 +48,6 @@ export default function App() {
                   case 'PressureMap':
                     iconName = 'map';
                     break;
-                  case 'History':
-                    iconName = 'history';
-                    break;
                   case 'Settings':
                     iconName = 'cog';
                     break;
@@ -53,8 +64,7 @@ export default function App() {
           >
             <Tab.Screen name="Home" component={HomeScreen} />
             <Tab.Screen name="PressureMap" component={PressureMapScreen} />
-            <Tab.Screen name="History" component={HistoryScreen} />
-            <Tab.Screen name="Settings" component={SettingsScreen} />
+            <Tab.Screen name="Settings" component={SettingsStackNavigator} />
             <Tab.Screen name="Auth" component={AuthScreen} />
           </Tab.Navigator>
         </NavigationContainer>
