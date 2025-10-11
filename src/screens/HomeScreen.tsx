@@ -1,13 +1,45 @@
 import React, { useEffect, useState } from "react";
-import { View, Text, Button, StyleSheet, FlatList, TouchableOpacity, Alert } from "react-native";
+
+import {
+  View,
+  StyleSheet,
+  ImageBackground,
+  ScrollView,
+  FlatList,
+  TouchableOpacity,
+  Alert,
+} from "react-native";
+import {
+  Text,
+  Switch,
+  Menu,
+  Button,
+  Divider,
+  Card,
+  Avatar,
+  useTheme,
+} from "react-native-paper";
+import Slider from "@react-native-community/slider";
+
 import { checkConnection } from "../services/api";
 import { db } from "../services/firebaseConfig";
-import { collection, addDoc, getDocs, deleteDoc, doc, DocumentData } from "firebase/firestore";
+import {
+  collection,
+  addDoc,
+  getDocs,
+  deleteDoc,
+  doc,
+  DocumentData,
+} from "firebase/firestore";
 
 export default function HomeScreen() {
   // ✅ Connection states
-  const [backendConnected, setBackendConnected] = useState<boolean | null>(null);
-  const [firestoreConnected, setFirestoreConnected] = useState<boolean | null>(null);
+  const [backendConnected, setBackendConnected] = useState<boolean | null>(
+    null
+  );
+  const [firestoreConnected, setFirestoreConnected] = useState<boolean | null>(
+    null
+  );
 
   // ✅ Firestore data state
   const [patients, setPatients] = useState<DocumentData[]>([]);
@@ -117,7 +149,9 @@ export default function HomeScreen() {
         </Text>
       </View>
 
-      <Button title="Add Test Patient" onPress={addPatient} />
+      <Button mode="contained" onPress={addPatient}>
+        Add Test Patient
+      </Button>
 
       <Text style={[styles.header, { marginTop: 25 }]}>🧑‍⚕️ Patient Records</Text>
 
@@ -128,7 +162,7 @@ export default function HomeScreen() {
       ) : (
         <FlatList
           data={patients}
-          keyExtractor={(item) => item.id}
+          keyExtractor={(item: any) => item.id}
           renderItem={({ item }) => (
             <View style={styles.patientCard}>
               <View style={{ flex: 1 }}>
@@ -204,5 +238,3 @@ const styles = StyleSheet.create({
     color: "red",
   },
 });
-
-
