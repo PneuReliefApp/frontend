@@ -2,7 +2,7 @@ import * as React from "react";
 import { SafeAreaView, ScrollView, StyleSheet, View, Text } from "react-native";
 import { Card, Button, Title, Paragraph, useTheme } from "react-native-paper";
 
-const PressureMapScreen: React.FC = () => {
+const ReportsScreen: React.FC = () => {
   const theme = useTheme();
 
   // Sample data for demonstration
@@ -68,7 +68,7 @@ const PressureMapScreen: React.FC = () => {
   );
 };
 
-export default PressureMapScreen;
+export default ReportsScreen;
 
 const styles = StyleSheet.create({
   container: {
