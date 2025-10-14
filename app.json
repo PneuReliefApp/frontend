@@ -13,15 +13,27 @@
       "backgroundColor": "#ffffff"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.melaniechoi2040.pneurelieffrontend",
+      "infoPlist": {
+        "NSBluetoothAlwaysUsageDescription": "App requires Bluetooth to connect to devices",
+        "NSBluetoothPeripheralUsageDescription": "App requires Bluetooth to connect to devices"
+      }
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#ffffff"
+        "backgroundColor": "#ffffff",
+        "permissions": [
+          "BLUETOOTH_SCAN",
+          "BLUETOOTH_CONNECT",
+          "BLUETOOTH_ADVERTISE",
+          "ACCESS_FINE_LOCATION"
+        ]
       },
       "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "package": "com.melaniechoi2040.pneurelieffrontend"
     },
     "web": {
       "favicon": "./assets/favicon.png"

@@ -31,6 +31,7 @@ import {
   doc,
   DocumentData,
 } from "firebase/firestore";
+import { BLEInstance, requestBluetoothPermissions } from "../services/bluetooth";
 
 export default function HomeScreen() {
   // ✅ Connection states
@@ -46,6 +47,8 @@ export default function HomeScreen() {
   const [loading, setLoading] = useState<boolean>(true);
   const [connected, setConnected] = React.useState<boolean | null>(null);
 
+  const manager = BLEInstance.manager;
+
   // Check backend connection
   React.useEffect(() => {
     const testConnection = async () => {
@@ -53,7 +56,35 @@ export default function HomeScreen() {
       setConnected(ok);
     };
     testConnection();
+
+    const initBluetooth = async() =>{
+      const granted = await requestBluetoothPermissions();
+      if(!granted){
+        console.warn("Bluetooth permission not granted");
+        return;
+      }
+      const subscription = manager.onStateChange(state=>{
+        if(state === 'PoweredOn'){
+          scanAndConnect()
+          subscription.remove()
+        }
+      }, true);
+      return() => subscription.remove();
+    };
+    initBluetooth();
   }, []);
+
+  const scanAndConnect = () =>{
+    manager.startDeviceScan(null, null, (error, device)=>{
+      if(error){
+        manager.stopDeviceScan();
+        return;
+      }
+      if(device?.name === "ESP32_BLUETOOTH"){
+        console.log(device?.name);
+      }
+    })
+  }
 
   // --- Function to test Firestore ---
   const testFirestoreConnection = async () => {
@@ -253,7 +284,7 @@ const styles = StyleSheet.create({
     justifyContent: "flex-start",
     backgroundColor: "#fff",
     paddingTop: 60,
-    padding: 20
+    padding: 20,
   },
   header: {
     fontSize: 22,
