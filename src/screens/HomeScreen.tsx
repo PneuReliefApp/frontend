@@ -58,12 +58,14 @@ export default function HomeScreen() {
     testConnection();
 
     const initBluetooth = async() =>{
+      console.log("init bluetooth")
       const granted = await requestBluetoothPermissions();
       if(!granted){
         console.warn("Bluetooth permission not granted");
         return;
       }
       const subscription = manager.onStateChange(state=>{
+        console.log("init bluetooth111")
         if(state === 'PoweredOn'){
           scanAndConnect()
           subscription.remove()
