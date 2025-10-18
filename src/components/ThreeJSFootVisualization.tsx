@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { Text, ActivityIndicator } from 'react-native-paper';
-import { Canvas } from '@react-three/fiber';
-import { OrbitControls } from '@react-three/drei';
+import { Canvas } from '@react-three/fiber/native';
+//import { OrbitControls } from '@react-three/drei';
 import { Asset } from 'expo-asset';
 import FootModelInner from './FootModelInner';
 
@@ -44,14 +44,14 @@ export default function ThreeJSFootVisualization() {
 
         <FootModelInner />
 
-        <OrbitControls
+        {/* <OrbitControls
           enablePan={false}
           enableZoom={true}
           minDistance={2}
           maxDistance={8}
           minPolarAngle={0}
           maxPolarAngle={Math.PI}
-        />
+        /> */}
       </Canvas>
     </View>
   );
