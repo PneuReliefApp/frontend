@@ -2103,7 +2103,7 @@ PODS:
     - ReactNativeDependencies
     - RNWorklets
     - Yoga
-  - RNScreens (4.16.0):
+  - RNScreens (4.17.1):
     - hermes-engine
     - RCTRequired
     - RCTTypeSafety
@@ -2125,9 +2125,9 @@ PODS:
     - ReactCommon/turbomodule/bridging
     - ReactCommon/turbomodule/core
     - ReactNativeDependencies
-    - RNScreens/common (= 4.16.0)
+    - RNScreens/common (= 4.17.1)
     - Yoga
-  - RNScreens/common (4.16.0):
+  - RNScreens/common (4.17.1):
     - hermes-engine
     - RCTRequired
     - RCTTypeSafety
@@ -2150,7 +2150,7 @@ PODS:
     - ReactCommon/turbomodule/core
     - ReactNativeDependencies
     - Yoga
-  - RNWorklets (0.6.0):
+  - RNWorklets (0.6.1):
     - hermes-engine
     - RCTRequired
     - RCTTypeSafety
@@ -2172,9 +2172,9 @@ PODS:
     - ReactCommon/turbomodule/bridging
     - ReactCommon/turbomodule/core
     - ReactNativeDependencies
-    - RNWorklets/worklets (= 0.6.0)
+    - RNWorklets/worklets (= 0.6.1)
     - Yoga
-  - RNWorklets/worklets (0.6.0):
+  - RNWorklets/worklets (0.6.1):
     - hermes-engine
     - RCTRequired
     - RCTTypeSafety
@@ -2196,9 +2196,9 @@ PODS:
     - ReactCommon/turbomodule/bridging
     - ReactCommon/turbomodule/core
     - ReactNativeDependencies
-    - RNWorklets/worklets/apple (= 0.6.0)
+    - RNWorklets/worklets/apple (= 0.6.1)
     - Yoga
-  - RNWorklets/worklets/apple (0.6.0):
+  - RNWorklets/worklets/apple (0.6.1):
     - hermes-engine
     - RCTRequired
     - RCTTypeSafety
@@ -2225,7 +2225,7 @@ PODS:
 
 DEPENDENCIES:
   - EXConstants (from `../node_modules/expo-constants/ios`)
-  - EXJSONUtils (from `../node_modules/expo-json-utils/ios`)
+  - EXJSONUtils (from `../node_modules/expo-manifests/node_modules/expo-json-utils/ios`)
   - EXManifests (from `../node_modules/expo-manifests/ios`)
   - Expo (from `../node_modules/expo`)
   - expo-dev-client (from `../node_modules/expo-dev-client/ios`)
@@ -2233,10 +2233,10 @@ DEPENDENCIES:
   - expo-dev-menu (from `../node_modules/expo-dev-menu`)
   - expo-dev-menu-interface (from `../node_modules/expo-dev-menu-interface/ios`)
   - ExpoAsset (from `../node_modules/expo-asset/ios`)
-  - ExpoFileSystem (from `../node_modules/expo/node_modules/expo-file-system/ios`)
+  - ExpoFileSystem (from `../node_modules/expo-file-system/ios`)
   - ExpoFont (from `../node_modules/expo-font/ios`)
   - ExpoGL (from `../node_modules/expo-gl`)
-  - ExpoKeepAwake (from `../node_modules/expo/node_modules/expo-keep-awake/ios`)
+  - ExpoKeepAwake (from `../node_modules/expo-keep-awake/ios`)
   - ExpoModulesCore (from `../node_modules/expo-modules-core`)
   - EXUpdatesInterface (from `../node_modules/expo-updates-interface/ios`)
   - FBLazyVector (from `../node_modules/react-native/Libraries/FBLazyVector`)
@@ -2323,7 +2323,7 @@ EXTERNAL SOURCES:
   EXConstants:
     :path: "../node_modules/expo-constants/ios"
   EXJSONUtils:
-    :path: "../node_modules/expo-json-utils/ios"
+    :path: "../node_modules/expo-manifests/node_modules/expo-json-utils/ios"
   EXManifests:
     :path: "../node_modules/expo-manifests/ios"
   Expo:
@@ -2339,13 +2339,13 @@ EXTERNAL SOURCES:
   ExpoAsset:
     :path: "../node_modules/expo-asset/ios"
   ExpoFileSystem:
-    :path: "../node_modules/expo/node_modules/expo-file-system/ios"
+    :path: "../node_modules/expo-file-system/ios"
   ExpoFont:
     :path: "../node_modules/expo-font/ios"
   ExpoGL:
     :path: "../node_modules/expo-gl"
   ExpoKeepAwake:
-    :path: "../node_modules/expo/node_modules/expo-keep-awake/ios"
+    :path: "../node_modules/expo-keep-awake/ios"
   ExpoModulesCore:
     :path: "../node_modules/expo-modules-core"
   EXUpdatesInterface:
@@ -2588,10 +2588,10 @@ SPEC CHECKSUMS:
   ReactNativeDependencies: ed6d1e64802b150399f04f1d5728ec16b437251e
   RNGestureHandler: 2914750df066d89bf9d8f48a10ad5f0051108ac3
   RNReanimated: 3895a29fdf77bbe2a627e1ed599a5e5d1df76c29
-  RNScreens: d8d6f1792f6e7ac12b0190d33d8d390efc0c1845
-  RNWorklets: e2f21d10699f21634e4b9583c10e3596e6d3b353
+  RNScreens: db8ce1da5a1423fca091b856ac7fecec6596ddb8
+  RNWorklets: 54d8dffb7f645873a58484658ddfd4bd1a9a0bc1
   Yoga: 051f086b5ccf465ff2ed38a2cf5a558ae01aaaa1
 
-PODFILE CHECKSUM: 029527639757c4cad617c8f7f66baf55dfbc72bd
+PODFILE CHECKSUM: ecfaacfd5b73d78393f0bc3c0dec630ee26f8f27
 
 COCOAPODS: 1.16.2
