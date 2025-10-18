@@ -18,6 +18,7 @@ import {
   Card,
   Avatar,
   useTheme,
+  IconButton,
 } from "react-native-paper";
 import Slider from "@react-native-community/slider";
 
@@ -31,7 +32,11 @@ import {
   doc,
   DocumentData,
 } from "firebase/firestore";
+
 import { BLEInstance, requestBluetoothPermissions } from "../services/bluetooth";
+
+import ThreeJSFootVisualization from "../components/ThreeJSFootVisualization";
+
 
 export default function HomeScreen() {
   // ✅ Connection states
@@ -197,10 +202,28 @@ export default function HomeScreen() {
         </ImageBackground>
       </Card>
 
-      {/* Dashboard Section */}
-      <Card style={styles.sectionCard} elevation={2}>
-        <Card.Content>
-          <Text style={{ marginTop: 4 }}>Dashboard Section</Text>
+      {/* 3D Foot Model Visualization */}
+      <Card style={styles.footModelCard} elevation={3}>
+        <Card.Content style={styles.cardContent}>
+          <View style={styles.cardHeader}>
+            <Text variant="titleMedium" style={{ fontWeight: "bold" }}>
+              3D Foot Model
+            </Text>
+            <View style={styles.rotateIconContainer}>
+              <IconButton 
+                icon="rotate-3d" 
+                size={18} 
+                iconColor="#3b82f6"
+              />
+              <Text style={styles.rotateText}>Interactive</Text>
+            </View>
+          </View>
+          
+          <ThreeJSFootVisualization />
+          
+          <Text style={styles.modelInstructions}>
+            Touch and drag to rotate • Pinch to zoom
+          </Text>
         </Card.Content>
       </Card>
 
@@ -356,5 +379,39 @@ const styles = StyleSheet.create({
   },
   sectionCard: {
     marginBottom: 16,
+  },
+  cardContent: {
+    padding: 16,
+  },
+  cardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  rotateIconContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#f1f5f9',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 16,
+  },
+  rotateText: {
+    fontSize: 12,
+    color: '#3b82f6',
+    fontWeight: '600',
+  },
+  footModelCard: {
+    marginBottom: 16,
+    borderRadius: 12,
+    overflow: 'hidden',
+  },
+  modelInstructions: {
+    textAlign: 'center',
+    marginTop: 8,
+    fontSize: 12,
+    color: '#64748b',
+    fontStyle: 'italic',
   },
 });
