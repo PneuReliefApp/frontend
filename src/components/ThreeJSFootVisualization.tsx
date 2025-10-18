@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { Text, ActivityIndicator } from 'react-native-paper';
-import { Canvas } from '@react-three/fiber/native';
-import { OrbitControls } from '@react-three/drei/native';
+import { Canvas } from '@react-three/fiber';
+import { OrbitControls } from '@react-three/drei';
 import { Asset } from 'expo-asset';
 import FootModelInner from './FootModelInner';
 
