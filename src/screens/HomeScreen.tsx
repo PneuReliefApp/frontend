@@ -13,6 +13,7 @@ import {
   Text,
   Switch,
   Menu,
+  Chip,
   Button,
   Divider,
   Card,
@@ -39,9 +40,14 @@ export default function HomeScreen() {
   const [backendConnected, setBackendConnected] = useState<boolean | null>(
     null
   );
+  const [bluetoothConnected, setBluetoothConnected] = useState<boolean | null>(
+    null
+  );
   const [firestoreConnected, setFirestoreConnected] = useState<boolean | null>(
     null
   );
+
+  const [scrollEnabled, setScrollEnabled] = useState(true);
 
   // ✅ Firestore data state
   const [patients, setPatients] = useState<DocumentData[]>([]);
@@ -138,131 +144,200 @@ export default function HomeScreen() {
 
   // --- Render UI ---
   return (
-    <View style={styles.container}>
-      <Card style={styles.welcomeCard} elevation={4}>
-        <ImageBackground
-          source={{
-            uri: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTIpm4TIKo77tuSmYWg2jZcdEtjQOIsp3HMoQ&s",
-          }}
-          style={styles.welcomeBackground}
-          imageStyle={{ borderRadius: 12 }}
-        >
-          <View style={styles.welcomeContent}>
-            <Avatar.Image
-              size={80}
-              source={{
-                uri: "https://img.freepik.com/free-vector/fashionable-avatar-girl_24877-81624.jpg?semt=ais_hybrid&w=740&q=80",
-              }}
-            />
-            <View style={styles.welcomeTextContainer}>
-              <Text variant="headlineSmall" style={styles.welcomeText}>
-                Welcome, Melanie!
-              </Text>
-              <Text variant="bodyMedium" style={styles.subText}>
-                How’s it going today?
-              </Text>
-            </View>
-          </View>
-        </ImageBackground>
-      </Card>
-
-      {/* 3D Foot Model Visualization */}
-      <Card style={styles.footModelCard} elevation={3}>
-        <Card.Content style={styles.cardContent}>
-          <View style={styles.cardHeader}>
-            <Text variant="titleMedium" style={{ fontWeight: "bold" }}>
-              3D Foot Model
-            </Text>
-            <View style={styles.rotateIconContainer}>
-              <IconButton 
-                icon="rotate-3d" 
-                size={18} 
-                iconColor="#3b82f6"
+    <ScrollView
+      scrollEnabled={scrollEnabled}
+      contentContainerStyle={styles.scrollContent}
+    >
+      <View style={styles.container}>
+        <Card style={styles.welcomeCard} elevation={4}>
+          <ImageBackground
+            source={{
+              uri: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTIpm4TIKo77tuSmYWg2jZcdEtjQOIsp3HMoQ&s",
+            }}
+            style={styles.welcomeBackground}
+            imageStyle={{ borderRadius: 12 }}
+          >
+            <View style={styles.welcomeContent}>
+              <Avatar.Image
+                size={80}
+                source={{
+                  uri: "https://img.freepik.com/free-vector/fashionable-avatar-girl_24877-81624.jpg?semt=ais_hybrid&w=740&q=80",
+                }}
               />
-              <Text style={styles.rotateText}>Interactive</Text>
+              <View style={styles.welcomeTextContainer}>
+                <Text variant="headlineSmall" style={styles.welcomeText}>
+                  Welcome, Melanie!
+                </Text>
+                <Text variant="bodyMedium" style={styles.subText}>
+                  How’s it going today?
+                </Text>
+              </View>
             </View>
-          </View>
-          
-          <ThreeJSFootVisualization />
-          
-          <Text style={styles.modelInstructions}>
-            Touch and drag to rotate • Pinch to zoom
-          </Text>
-        </Card.Content>
-      </Card>
+          </ImageBackground>
+        </Card>
 
-      {/* Backend Status */}
-      <Card style={styles.sectionCard} elevation={2}>
-        <Card.Content>
-          <Text variant="titleMedium" style={{ fontWeight: "bold" }}>
-            Backend Status
-          </Text>
-          <Text style={{ marginTop: 4 }}>
-            {connected === null
+        {/* 3D Foot Model Visualization */}
+        <View
+          onTouchStart={() => setScrollEnabled(false)}
+          onTouchEnd={() => setScrollEnabled(true)}
+        >
+          <Card style={styles.footModelCard} elevation={3}>
+            <Card.Content style={styles.cardContent}>
+              <View style={styles.cardHeader}>
+                <Text variant="titleMedium" style={{ fontWeight: "bold" }}>
+                  3D Foot Model
+                </Text>
+                <View style={styles.rotateIconContainer}>
+                  <IconButton icon="rotate-3d" size={18} iconColor="#3b82f6" />
+                  <Text style={styles.rotateText}>Interactive</Text>
+                </View>
+              </View>
+
+              <ThreeJSFootVisualization />
+
+              <Text style={styles.modelInstructions}>
+                Touch and drag to rotate • Pinch to zoom
+              </Text>
+            </Card.Content>
+          </Card>
+        </View>
+
+        {/* Backend Status */}
+        <Card style={styles.sectionCard} elevation={2}>
+          <Card.Content>
+            <View style={styles.statusRow}>
+              <View style={styles.statusCol}>
+                <Text
+                  style={{
+                    color: "black",
+                    fontWeight: "600",
+                  }}
+                >
+                  Server
+                </Text>
+                <Chip
+                  compact
+                  style={[
+                    styles.chip,
+                    {
+                      backgroundColor: backendConnected
+                        ? "rgba(46, 204, 113, 0.15)"
+                        : "rgba(231, 76, 60, 0.15)",
+                    },
+                  ]}
+                  textStyle={{
+                    color: backendConnected ? "#2ecc71" : "#e74c3c",
+                    fontWeight: "600",
+                  }}
+                >
+                  {backendConnected ? "Connected" : "Disconnected"}
+                </Chip>
+              </View>
+
+              <View style={styles.statusCol}>
+                <Text
+                  style={{
+                    color: "black",
+                    fontWeight: "600",
+                  }}
+                >
+                  Bluetooth
+                </Text>
+                <Chip
+                  compact
+                  style={[
+                    styles.chip,
+                    {
+                      backgroundColor: bluetoothConnected
+                        ? "rgba(52, 152, 219, 0.15)"
+                        : "rgba(149, 165, 166, 0.15)",
+                    },
+                  ]}
+                  textStyle={{
+                    color: bluetoothConnected ? "#3498db" : "#7f8c8d",
+                    fontWeight: "600",
+                  }}
+                >
+                  {bluetoothConnected ? "Connected" : "Not Connected"}
+                </Chip>
+              </View>
+
+              <Chip
+                compact
+                style={[
+                  styles.chip,
+                  { backgroundColor: "rgba(236, 240, 241, 0.2)" },
+                ]}
+                textStyle={{
+                  color: "#7f8c8d",
+                  fontWeight: "600",
+                }}
+              >
+                Last Sync: 12 Oct 2024 05:00:00
+              </Chip>
+            </View>
+          </Card.Content>
+        </Card>
+
+        <Text style={styles.header}>🔧 System Connectivity</Text>
+
+        <View style={styles.statusBox}>
+          <Text style={styles.text}>
+            Backend:{" "}
+            {backendConnected === null
               ? "Checking..."
-              : connected
+              : backendConnected
               ? "✅ Connected"
               : "❌ Not Connected"}
           </Text>
-        </Card.Content>
-      </Card>
 
-      <Text style={styles.header}>🔧 System Connectivity</Text>
+          <Text style={styles.text}>
+            Firestore:{" "}
+            {firestoreConnected === null
+              ? "Checking..."
+              : firestoreConnected
+              ? "✅ Connected"
+              : "❌ Not Connected"}
+          </Text>
+        </View>
 
-      <View style={styles.statusBox}>
-        <Text style={styles.text}>
-          Backend:{" "}
-          {backendConnected === null
-            ? "Checking..."
-            : backendConnected
-            ? "✅ Connected"
-            : "❌ Not Connected"}
+        <Button mode="contained" onPress={addPatient}>
+          Add Test Patient
+        </Button>
+
+        <Text style={[styles.header, { marginTop: 25 }]}>
+          🧑‍⚕️ Patient Records
         </Text>
 
-        <Text style={styles.text}>
-          Firestore:{" "}
-          {firestoreConnected === null
-            ? "Checking..."
-            : firestoreConnected
-            ? "✅ Connected"
-            : "❌ Not Connected"}
-        </Text>
-      </View>
-
-      <Button mode="contained" onPress={addPatient}>
-        Add Test Patient
-      </Button>
-
-      <Text style={[styles.header, { marginTop: 25 }]}>🧑‍⚕️ Patient Records</Text>
-
-      {loading ? (
-        <Text style={styles.text}>Loading patients...</Text>
-      ) : patients.length === 0 ? (
-        <Text style={styles.text}>No patients found.</Text>
-      ) : (
-        <FlatList
-          data={patients}
-          keyExtractor={(item: any) => item.id}
-          renderItem={({ item }) => (
-            <View style={styles.patientCard}>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.patientName}>{item.name}</Text>
-                <Text style={styles.patientDate}>
-                  Added: {new Date(item.createdAt).toLocaleString()}
-                </Text>
+        {loading ? (
+          <Text style={styles.text}>Loading patients...</Text>
+        ) : patients.length === 0 ? (
+          <Text style={styles.text}>No patients found.</Text>
+        ) : (
+          <FlatList
+            data={patients}
+            keyExtractor={(item: any) => item.id}
+            renderItem={({ item }) => (
+              <View style={styles.patientCard}>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.patientName}>{item.name}</Text>
+                  <Text style={styles.patientDate}>
+                    Added: {new Date(item.createdAt).toLocaleString()}
+                  </Text>
+                </View>
+                <TouchableOpacity
+                  onPress={() => deletePatient(item.id, item.name)}
+                  style={styles.deleteButton}
+                >
+                  <Text style={styles.deleteText}>🗑️</Text>
+                </TouchableOpacity>
               </View>
-              <TouchableOpacity
-                onPress={() => deletePatient(item.id, item.name)}
-                style={styles.deleteButton}
-              >
-                <Text style={styles.deleteText}>🗑️</Text>
-              </TouchableOpacity>
-            </View>
-          )}
-          contentContainerStyle={{ paddingVertical: 10 }}
-        />
-      )}
-    </View>
+            )}
+            contentContainerStyle={{ paddingVertical: 10 }}
+          />
+        )}
+      </View>
+    </ScrollView>
   );
 }
 
@@ -273,7 +348,7 @@ const styles = StyleSheet.create({
     justifyContent: "flex-start",
     backgroundColor: "#fff",
     paddingTop: 60,
-    padding: 20
+    padding: 20,
   },
   header: {
     fontSize: 22,
@@ -348,34 +423,55 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   cardHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     marginBottom: 12,
   },
   rotateIconContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#f1f5f9',
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#f1f5f9",
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 16,
   },
   rotateText: {
     fontSize: 12,
-    color: '#3b82f6',
-    fontWeight: '600',
+    color: "#3b82f6",
+    fontWeight: "600",
   },
   footModelCard: {
     marginBottom: 16,
     borderRadius: 12,
-    overflow: 'hidden',
+    overflow: "hidden",
   },
   modelInstructions: {
-    textAlign: 'center',
+    textAlign: "center",
     marginTop: 8,
     fontSize: 12,
-    color: '#64748b',
-    fontStyle: 'italic',
+    color: "#64748b",
+    fontStyle: "italic",
+  },
+  statusRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    flexWrap: "wrap",
+    gap: 6,
+    marginTop: 6,
+    marginLeft: 10,
+    marginRight: 10,
+  },
+  statusCol: {
+    flexDirection: "column",
+    alignItems: "center",
+    gap: 3,
+  },
+  chip: {
+    height: 32,
+  },
+  scrollContent: {
+    padding: 16,
   },
 });
