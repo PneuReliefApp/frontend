@@ -23,7 +23,7 @@
 		13B07FB61A68108700A75B9A /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = Info.plist; path = pneurelieffrontend/Info.plist; sourceTree = "<group>"; };
 		2E70C8CE0510DB83A896EAFC /* Pods-pneurelieffrontend.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-pneurelieffrontend.release.xcconfig"; path = "Target Support Files/Pods-pneurelieffrontend/Pods-pneurelieffrontend.release.xcconfig"; sourceTree = "<group>"; };
 		63DA090E3DBBC735D5CD1319 /* Pods-pneurelieffrontend.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-pneurelieffrontend.debug.xcconfig"; path = "Target Support Files/Pods-pneurelieffrontend/Pods-pneurelieffrontend.debug.xcconfig"; sourceTree = "<group>"; };
-		647FF8CD0C9A90E1138BDA64 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; includeInIndex = 1; name = PrivacyInfo.xcprivacy; path = pneurelieffrontend/PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
+		647FF8CD0C9A90E1138BDA64 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xml; name = PrivacyInfo.xcprivacy; path = pneurelieffrontend/PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		8F538DDBC4E99861B99241AB /* ExpoModulesProvider.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ExpoModulesProvider.swift; path = "Pods/Target Support Files/Pods-pneurelieffrontend/ExpoModulesProvider.swift"; sourceTree = "<group>"; };
 		AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.storyboard; name = SplashScreen.storyboard; path = pneurelieffrontend/SplashScreen.storyboard; sourceTree = "<group>"; };
 		BB2F792C24A3F905000567C9 /* Expo.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = Expo.plist; sourceTree = "<group>"; };
@@ -81,7 +81,6 @@
 				63DA090E3DBBC735D5CD1319 /* Pods-pneurelieffrontend.debug.xcconfig */,
 				2E70C8CE0510DB83A896EAFC /* Pods-pneurelieffrontend.release.xcconfig */,
 			);
-			name = Pods;
 			path = Pods;
 			sourceTree = "<group>";
 		};
@@ -341,6 +340,7 @@
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_ENTITLEMENTS = pneurelieffrontend/pneurelieffrontend.entitlements;
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 3TRF2U7S24;
 				ENABLE_BITCODE = NO;
 				GCC_PREPROCESSOR_DEFINITIONS = (
 					"$(inherited)",
@@ -377,6 +377,7 @@
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_ENTITLEMENTS = pneurelieffrontend/pneurelieffrontend.entitlements;
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 3TRF2U7S24;
 				INFOPLIST_FILE = pneurelieffrontend/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 15.1;
 				LD_RUNPATH_SEARCH_PATHS = (
