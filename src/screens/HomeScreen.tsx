@@ -34,6 +34,10 @@ import {
   DocumentData,
 } from "firebase/firestore";
 import ThreeJSFootVisualization from "../components/ThreeJSFootVisualization";
+import {
+  BLEInstance,
+  requestBluetoothPermissions,
+} from "../services/bluetooth";
 
 export default function HomeScreen() {
   // ✅ Connection states
@@ -53,7 +57,11 @@ export default function HomeScreen() {
   const [patients, setPatients] = useState<DocumentData[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [connected, setConnected] = React.useState<boolean | null>(null);
+  const [device, setDevice] = useState<any>();
 
+  const manager = BLEInstance.manager;
+  const SERVICE_UUID = "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"; // replace with your ESP32 service UUID
+  const CHARACTERISTIC_UUID = "yyyyyyyy-yyyy-yyyy-yyyy-yyyyyyyyyyyy";
   // Check backend connection
   React.useEffect(() => {
     const testConnection = async () => {
@@ -62,6 +70,66 @@ export default function HomeScreen() {
     };
     testConnection();
   }, []);
+
+  const setupOnDeviceDisconnected = (deviceId: any) => {
+    manager.onDeviceDisconnected(deviceId, (error, device) => {
+      if (error) {
+        console.error("❌ Disconnection error:", error);
+      }
+      console.log("⚠️ Device disconnected:", device?.id);
+      setBluetoothConnected(false);
+
+      if (device) {
+        console.log("🔁 Attempting to reconnect...");
+        device.connect().then(() => {
+          setBluetoothConnected(true);
+          console.log("✅ Reconnected successfully");
+        });
+      }
+    });
+  };
+
+  const scanAndConnect = () => {
+    manager.startDeviceScan(null, null, async (error, device) => {
+      if (error) {
+        manager.stopDeviceScan();
+        return;
+      }
+      if (device?.name === "ESP32_BLUETOOTH") {
+        console.log(device?.name);
+        setBluetoothConnected(true);
+        manager.stopDeviceScan();
+
+        try {
+          const connectedDevice = await device.connect();
+          setDevice(connectedDevice);
+          await connectedDevice.discoverAllServicesAndCharacteristics();
+
+          setupOnDeviceDisconnected(connectedDevice.id);
+          const characteristic =
+            await connectedDevice.readCharacteristicForService(
+              SERVICE_UUID,
+              CHARACTERISTIC_UUID
+            );
+          console.log("Characteristic value:", characteristic.value);
+
+          device.monitorCharacteristicForService(
+            SERVICE_UUID,
+            CHARACTERISTIC_UUID,
+            (error, characteristic) => {
+              if (characteristic?.value) {
+              }
+            }
+          );
+        } catch (err) {
+          console.error("Connection error:", err);
+          setBluetoothConnected(false);
+        }
+      } else {
+        setBluetoothConnected(false);
+      }
+    });
+  };
 
   // --- Function to test Firestore ---
   const testFirestoreConnection = async () => {
@@ -140,6 +208,36 @@ export default function HomeScreen() {
       await testFirestoreConnection();
     };
     runAllTests();
+
+    const initBluetooth = async () => {
+      console.log("init bluetooth");
+      const granted = await requestBluetoothPermissions();
+      if (!granted) {
+        console.warn("Bluetooth permission not granted");
+        return;
+      } else {
+        console.log("Bluetooth granted");
+      }
+
+      const state = await manager.state(); // get current state
+      if (state !== "PoweredOn") {
+        Alert.alert(
+          "Bluetooth is off",
+          "Please turn on Bluetooth to connect to devices",
+          [{ text: "OK" }]
+        );
+        return;
+      }
+      const subscription = manager.onStateChange((state) => {
+        console.log("init bluetooth111");
+        if (state === "PoweredOn") {
+          scanAndConnect();
+          subscription.remove();
+        }
+      }, true);
+      return () => subscription.remove();
+    };
+    initBluetooth();
   }, []);
 
   // --- Render UI ---
