@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-
+import { PanGestureHandler } from "react-native-gesture-handler";
 import {
   View,
   StyleSheet,
@@ -34,6 +34,8 @@ import {
   DocumentData,
 } from "firebase/firestore";
 import ThreeJSFootVisualization from "../components/ThreeJSFootVisualization";
+import { VictoryChart, VictoryLine, VictoryTheme } from "victory-native";
+import LivePressureGraph from "../graphs/live_pressure_graph";
 
 export default function HomeScreen() {
   // ✅ Connection states
@@ -177,30 +179,40 @@ export default function HomeScreen() {
         </Card>
 
         {/* 3D Foot Model Visualization */}
-        <View
-          onTouchStart={() => setScrollEnabled(false)}
-          onTouchEnd={() => setScrollEnabled(true)}
-        >
-          <Card style={styles.footModelCard} elevation={3}>
-            <Card.Content style={styles.cardContent}>
-              <View style={styles.cardHeader}>
-                <Text variant="titleMedium" style={{ fontWeight: "bold" }}>
-                  3D Foot Model
-                </Text>
-                <View style={styles.rotateIconContainer}>
-                  <IconButton icon="rotate-3d" size={18} iconColor="#3b82f6" />
-                  <Text style={styles.rotateText}>Interactive</Text>
-                </View>
-              </View>
-
-              <ThreeJSFootVisualization />
-
-              <Text style={styles.modelInstructions}>
-                Touch and drag to rotate • Pinch to zoom
+        <Card style={styles.footModelCard} elevation={3}>
+          <Card.Content style={styles.cardContent}>
+            <View style={styles.cardHeader}>
+              <Text variant="titleMedium" style={{ fontWeight: "bold" }}>
+                3D Foot Model
               </Text>
-            </Card.Content>
-          </Card>
-        </View>
+              <View style={styles.rotateIconContainer}>
+                <IconButton icon="rotate-3d" size={18} iconColor="#3b82f6" />
+                <Text style={styles.rotateText}>Interactive</Text>
+              </View>
+            </View>
+
+            <View
+              onTouchStart={() => {
+                console.log("Canvas touch start — disable scroll");
+                setScrollEnabled(false);
+              }}
+              onTouchEnd={() => {
+                console.log("Canvas touch end — enable scroll");
+                setTimeout(() => setScrollEnabled(true), 200);
+              }}
+              onTouchCancel={() => {
+                console.log("Canvas touch cancel — enable scroll");
+                setScrollEnabled(true);
+              }}
+              style={{ width: "100%", alignItems: "center" }}
+            >
+              <ThreeJSFootVisualization />
+            </View>
+            <Text style={styles.modelInstructions}>
+              Touch and drag to rotate • Pinch to zoom
+            </Text>
+          </Card.Content>
+        </Card>
 
         {/* Backend Status */}
         <Card style={styles.sectionCard} elevation={2}>
@@ -278,6 +290,8 @@ export default function HomeScreen() {
             </View>
           </Card.Content>
         </Card>
+
+        <LivePressureGraph />
 
         <Text style={styles.header}>🔧 System Connectivity</Text>
 
