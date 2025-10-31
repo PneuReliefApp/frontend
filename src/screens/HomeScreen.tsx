@@ -21,7 +21,6 @@ import {
   useTheme,
   IconButton,
 } from "react-native-paper";
-import Slider from "@react-native-community/slider";
 
 import { checkConnection } from "../services/api";
 import { db } from "../services/firebaseConfig";
@@ -36,6 +35,7 @@ import {
 import ThreeJSFootVisualization from "../components/ThreeJSFootVisualization";
 import { VictoryChart, VictoryLine, VictoryTheme } from "victory-native";
 import LivePressureGraph from "../graphs/live_pressure_graph";
+import LivePositionGraph from "../graphs/live_position_graph";
 
 export default function HomeScreen() {
   // ✅ Connection states
@@ -287,12 +287,26 @@ export default function HomeScreen() {
               >
                 Last Sync: 12 Oct 2024 05:00:00
               </Chip>
+              <Chip
+                compact
+                style={[
+                  styles.chip,
+                  { backgroundColor: "rgba(236, 240, 241, 0.2)" },
+                ]}
+                textStyle={{
+                  fontWeight: "600",
+                }}
+              >
+                Current Patient Position: Standing
+              </Chip>
             </View>
           </Card.Content>
         </Card>
-
-        <LivePressureGraph />
-
+        <View style={{ flex: 1, flexDirection: "column", gap: 16 }}>
+          <LivePressureGraph />
+          <LivePositionGraph/>
+        </View>
+        
         <Text style={styles.header}>🔧 System Connectivity</Text>
 
         <View style={styles.statusBox}>
@@ -360,7 +374,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     justifyContent: "flex-start",
-    backgroundColor: "#fff",
+    backgroundColor: "white",
     paddingTop: 60,
     padding: 20,
   },
@@ -486,6 +500,7 @@ const styles = StyleSheet.create({
     height: 32,
   },
   scrollContent: {
+    gap:16,
     padding: 16,
   },
 });
