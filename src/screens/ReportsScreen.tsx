@@ -1,6 +1,15 @@
 import * as React from "react";
 import { SafeAreaView, ScrollView, StyleSheet, View, Text } from "react-native";
-import { Card, Button, Title, Paragraph, useTheme } from "react-native-paper";
+import {
+  Card,
+  Button,
+  Title,
+  Paragraph,
+  useTheme,
+  Divider,
+  List,
+  Avatar,
+} from "react-native-paper";
 import TherapyCycleGraph from "../components/TherapyCycleGraph";
 
 const ReportsScreen: React.FC = () => {
@@ -36,6 +45,8 @@ const ReportsScreen: React.FC = () => {
       duration: "5m",
     },
   ];
+
+
 
   return (
     <SafeAreaView style={styles.container}>
@@ -102,15 +113,92 @@ const ReportsScreen: React.FC = () => {
                   </View>
                 </View>
 
-        {/* Section: High Pressure Events */}
-        <Text style={styles.sectionTitle}>High Pressure Events</Text>
-        <View style={styles.cardsContainer}>
-          {renderCards(highPressureEvents)}
-        </View>
+                {/* Peak Pressure */}
+                <View
+                  style={{
+                    flex: 1,
+                    backgroundColor: "#ffe6e6",
+                    borderRadius: 10,
+                    padding: 16,
+                  }}
+                >
+                  <View style={{ flexDirection: "row" }}>
+                    <Avatar.Icon
+                      size={32}
+                      icon="arrow-up-bold-circle"
+                      style={{ backgroundColor: "#f44336", marginRight: 10 }}
+                    />
+                    <View>
+                      <Text style={{ fontSize: 16, fontWeight: "bold" }}>
+                        Peak
+                      </Text>
+                      <Text style={{ fontSize: 14 }}>160 kPa</Text>
+                    </View>
+                  </View>
+                </View>
+              </View>
+            </View>
+          </Card.Content>
+        </Card>
 
-        {/* Section: Therapy Cycle Graph */}
-        <Text style={styles.sectionTitle}>Therapy Cycle Timeline</Text>
-        <TherapyCycleGraph />
+        {/* ========== High Pressure Events Section ========== */}
+        <Card style={styles.sectionCard}>
+          <Card.Content>
+            <Text style={styles.sectionTitle}>High Pressure Events</Text>
+            <Divider style={{ marginVertical: 8 }} />
+
+            <View
+              style={{
+                backgroundColor: "#ff9800",
+                borderRadius: 10,
+                padding: 16,
+                marginBottom: 10,
+              }}
+            >
+              <Text style={{ fontSize: 18, fontWeight: "bold" }}>
+                Time in High Pressure
+              </Text>
+              <Text style={{ fontSize: 16 }}>15min 30s</Text>
+            </View>
+
+            <List.Section>
+              <List.Accordion
+                title={`High Events Count: ${highPressureEvents.length}`}
+                left={(props) => (
+                  <List.Icon {...props} icon="alert-circle-outline" />
+                )}
+                style={{ backgroundColor: "#ffe6e6" }}
+              >
+                {highPressureEvents.map((event) => (
+                  <View key={event.id} style={styles.eventItem}>
+                    <Text style={styles.eventText}>
+                      Position: {event.position}
+                    </Text>
+                    <Text style={styles.eventText}>
+                      Start: {event.start.toLocaleTimeString()}
+                    </Text>
+                    <Text style={styles.eventText}>
+                      End: {event.end.toLocaleTimeString()}
+                    </Text>
+                    <Text style={styles.eventText}>
+                      Duration: {event.duration}
+                    </Text>
+                    <Divider style={{ marginVertical: 8 }} />
+                  </View>
+                ))}
+              </List.Accordion>
+            </List.Section>
+          </Card.Content>
+        </Card>
+
+        {/* ========== Therapy Cycle Graph Section ========== */}
+        <Card style={styles.sectionCard}>
+          <Card.Content>
+            <Text style={styles.sectionTitle}>Therapy Cycle Timeline</Text>
+            <Divider style={{ marginVertical: 8 }} />
+            <TherapyCycleGraph />
+          </Card.Content>
+        </Card>
       </ScrollView>
     </SafeAreaView>
   );
@@ -161,21 +249,7 @@ const styles = StyleSheet.create({
     elevation: 2,
     backgroundColor: "#fff",
   },
-  card: {
-    marginBottom: 12,
-    borderRadius: 8,
-    backgroundColor: "#fff",
-    elevation: 2,
-  },
-  cardTitle: {
-    fontSize: 15,
-    color: "#444",
-  },
-  cardValue: {
-    fontSize: 20,
-    fontWeight: "bold",
-    marginTop: 4,
-  },
+
   eventItem: {
     paddingVertical: 4,
     paddingHorizontal: 8,
