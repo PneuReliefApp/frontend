@@ -43,96 +43,99 @@ const TherapyCycleGraph: React.FC<TherapyCycleGraphProps> = ({
   const graphWidth = Math.max(screenWidth - 120, 600); // Minimum 600px for scrolling
   const pixelsPerSecond = graphWidth / totalDuration;
 
-  // Default mock data for 6 zones with 12 valves (2 per zone)
+  // Default mock data for 6 patches:
+  // Purple Group (inflates together): Bottom of Foot (3 patches) + Back of Foot (1 patch)
+  // Orange Group (inflates together): Right Ankle + Left Ankle
+  // Groups alternate: when Purple inflates, Orange deflates, and vice versa
   const defaultZones: ZoneData[] = zones || [
     {
-      zoneName: 'Ankle Zone',
+      zoneName: 'Bottom of Foot - Left',
       cycles: [
-        { type: 'inflate', duration: 60, startTime: 0 },
-        { type: 'hold', duration: 40, startTime: 60 },
-        { type: 'deflate', duration: 30, startTime: 100 },
-        { type: 'rest', duration: 50, startTime: 130 },
-        { type: 'inflate', duration: 60, startTime: 180 },
-        { type: 'hold', duration: 40, startTime: 240 },
-        { type: 'deflate', duration: 30, startTime: 280 },
-        { type: 'rest', duration: 50, startTime: 310 },
+        { type: 'inflate', duration: 40, startTime: 0 },    // Purple inflates (fast - small volume)
+        { type: 'hold', duration: 30, startTime: 40 },
+        { type: 'deflate', duration: 20, startTime: 70 },
+        { type: 'rest', duration: 30, startTime: 90 },
+        { type: 'inflate', duration: 40, startTime: 180 },   // Purple inflates again
+        { type: 'hold', duration: 30, startTime: 220 },
+        { type: 'deflate', duration: 20, startTime: 250 },
+        { type: 'rest', duration: 30, startTime: 270 },
+        { type: 'inflate', duration: 40, startTime: 360 },
+        { type: 'hold', duration: 30, startTime: 400 },
+      ],
+    },
+    {
+      zoneName: 'Bottom of Foot - Center',
+      cycles: [
+        { type: 'inflate', duration: 40, startTime: 0 },    // Purple inflates (fast - small volume)
+        { type: 'hold', duration: 30, startTime: 40 },
+        { type: 'deflate', duration: 20, startTime: 70 },
+        { type: 'rest', duration: 30, startTime: 90 },
+        { type: 'inflate', duration: 40, startTime: 180 },   // Purple inflates again
+        { type: 'hold', duration: 30, startTime: 220 },
+        { type: 'deflate', duration: 20, startTime: 250 },
+        { type: 'rest', duration: 30, startTime: 270 },
+        { type: 'inflate', duration: 40, startTime: 360 },
+        { type: 'hold', duration: 30, startTime: 400 },
+      ],
+    },
+    {
+      zoneName: 'Bottom of Foot - Right',
+      cycles: [
+        { type: 'inflate', duration: 45, startTime: 0 },    // Purple inflates (fast - small volume)
+        { type: 'hold', duration: 30, startTime: 45 },
+        { type: 'deflate', duration: 20, startTime: 75 },
+        { type: 'rest', duration: 25, startTime: 95 },
+        { type: 'inflate', duration: 45, startTime: 180 },   // Purple inflates again
+        { type: 'hold', duration: 30, startTime: 225 },
+        { type: 'deflate', duration: 20, startTime: 255 },
+        { type: 'rest', duration: 25, startTime: 275 },
+        { type: 'inflate', duration: 45, startTime: 360 },
+        { type: 'hold', duration: 30, startTime: 405 },
+      ],
+    },
+    {
+      zoneName: 'Back of Foot',
+      cycles: [
+        { type: 'inflate', duration: 60, startTime: 0 },    // Purple inflates (slower - larger volume)
+        { type: 'hold', duration: 30, startTime: 60 },
+        { type: 'deflate', duration: 20, startTime: 90 },
+        { type: 'rest', duration: 10, startTime: 110 },
+        { type: 'inflate', duration: 60, startTime: 180 },   // Purple inflates again
+        { type: 'hold', duration: 30, startTime: 240 },
+        { type: 'deflate', duration: 20, startTime: 270 },
+        { type: 'rest', duration: 10, startTime: 290 },
         { type: 'inflate', duration: 60, startTime: 360 },
-        { type: 'hold', duration: 40, startTime: 420 },
+        { type: 'hold', duration: 30, startTime: 420 },
       ],
     },
     {
-      zoneName: 'Heel Zone',
+      zoneName: 'Right Ankle',
       cycles: [
-        { type: 'rest', duration: 50, startTime: 0 },
-        { type: 'inflate', duration: 60, startTime: 50 },
-        { type: 'hold', duration: 40, startTime: 110 },
-        { type: 'deflate', duration: 30, startTime: 150 },
-        { type: 'rest', duration: 50, startTime: 180 },
-        { type: 'inflate', duration: 60, startTime: 230 },
-        { type: 'hold', duration: 40, startTime: 290 },
-        { type: 'deflate', duration: 30, startTime: 330 },
-        { type: 'rest', duration: 50, startTime: 360 },
-        { type: 'inflate', duration: 60, startTime: 410 },
+        { type: 'deflate', duration: 30, startTime: 0 },    // Orange deflates while Purple inflates
+        { type: 'rest', duration: 30, startTime: 30 },
+        { type: 'inflate', duration: 50, startTime: 120 },   // Orange inflates
+        { type: 'hold', duration: 30, startTime: 170 },
+        { type: 'deflate', duration: 30, startTime: 180 },   // Orange deflates while Purple inflates
+        { type: 'rest', duration: 30, startTime: 210 },
+        { type: 'inflate', duration: 50, startTime: 300 },   // Orange inflates
+        { type: 'hold', duration: 30, startTime: 350 },
+        { type: 'deflate', duration: 30, startTime: 360 },   // Orange deflates while Purple inflates
+        { type: 'rest', duration: 30, startTime: 390 },
       ],
     },
     {
-      zoneName: 'Arch Zone',
+      zoneName: 'Left Ankle',
       cycles: [
-        { type: 'inflate', duration: 60, startTime: 20 },
-        { type: 'hold', duration: 40, startTime: 80 },
-        { type: 'deflate', duration: 30, startTime: 120 },
-        { type: 'rest', duration: 50, startTime: 150 },
-        { type: 'inflate', duration: 60, startTime: 200 },
-        { type: 'hold', duration: 40, startTime: 260 },
-        { type: 'deflate', duration: 30, startTime: 300 },
-        { type: 'rest', duration: 50, startTime: 330 },
-        { type: 'inflate', duration: 60, startTime: 380 },
-        { type: 'hold', duration: 40, startTime: 440 },
-      ],
-    },
-    {
-      zoneName: 'Ball Zone',
-      cycles: [
-        { type: 'rest', duration: 30, startTime: 0 },
-        { type: 'inflate', duration: 60, startTime: 30 },
-        { type: 'hold', duration: 40, startTime: 90 },
-        { type: 'deflate', duration: 30, startTime: 130 },
-        { type: 'rest', duration: 50, startTime: 160 },
-        { type: 'inflate', duration: 60, startTime: 210 },
-        { type: 'hold', duration: 40, startTime: 270 },
-        { type: 'deflate', duration: 30, startTime: 310 },
-        { type: 'rest', duration: 50, startTime: 340 },
-        { type: 'inflate', duration: 60, startTime: 390 },
-      ],
-    },
-    {
-      zoneName: 'Toe Zone',
-      cycles: [
-        { type: 'inflate', duration: 60, startTime: 10 },
-        { type: 'hold', duration: 40, startTime: 70 },
-        { type: 'deflate', duration: 30, startTime: 110 },
-        { type: 'rest', duration: 50, startTime: 140 },
-        { type: 'inflate', duration: 60, startTime: 190 },
-        { type: 'hold', duration: 40, startTime: 250 },
-        { type: 'deflate', duration: 30, startTime: 290 },
-        { type: 'rest', duration: 50, startTime: 320 },
-        { type: 'inflate', duration: 60, startTime: 370 },
-        { type: 'hold', duration: 40, startTime: 430 },
-      ],
-    },
-    {
-      zoneName: 'Calf Zone',
-      cycles: [
-        { type: 'rest', duration: 40, startTime: 0 },
-        { type: 'inflate', duration: 60, startTime: 40 },
-        { type: 'hold', duration: 40, startTime: 100 },
-        { type: 'deflate', duration: 30, startTime: 140 },
-        { type: 'rest', duration: 50, startTime: 170 },
-        { type: 'inflate', duration: 60, startTime: 220 },
-        { type: 'hold', duration: 40, startTime: 280 },
-        { type: 'deflate', duration: 30, startTime: 320 },
-        { type: 'rest', duration: 50, startTime: 350 },
-        { type: 'inflate', duration: 60, startTime: 400 },
+        { type: 'deflate', duration: 30, startTime: 0 },    // Orange deflates while Purple inflates
+        { type: 'rest', duration: 30, startTime: 30 },
+        { type: 'inflate', duration: 50, startTime: 120 },   // Orange inflates
+        { type: 'hold', duration: 30, startTime: 170 },
+        { type: 'deflate', duration: 30, startTime: 180 },   // Orange deflates while Purple inflates
+        { type: 'rest', duration: 30, startTime: 210 },
+        { type: 'inflate', duration: 50, startTime: 300 },   // Orange inflates
+        { type: 'hold', duration: 30, startTime: 350 },
+        { type: 'deflate', duration: 30, startTime: 360 },   // Orange deflates while Purple inflates
+        { type: 'rest', duration: 30, startTime: 390 },
       ],
     },
   ];
@@ -174,6 +177,24 @@ const TherapyCycleGraph: React.FC<TherapyCycleGraphProps> = ({
           {zoneData.cycles.map((phase, phaseIndex) => {
             const width = phase.duration * pixelsPerSecond;
             const left = phase.startTime * pixelsPerSecond;
+            
+            // Use abbreviated text for narrow blocks (less than 40px wide)
+            const getPhaseLabel = () => {
+              const fullText = phase.type.charAt(0).toUpperCase() + phase.type.slice(1);
+              if (width < 40) {
+                // Show first letter only for very narrow blocks
+                return fullText.charAt(0);
+              } else if (width < 55) {
+                // Show abbreviated text for narrow blocks
+                const abbreviations: { [key: string]: string } = {
+                  'Inflate': 'Infl',
+                  'Deflate': 'Defl',
+                };
+                return abbreviations[fullText] || fullText;
+              }
+              return fullText;
+            };
+            
             return (
               <View
                 key={phaseIndex}
@@ -186,8 +207,8 @@ const TherapyCycleGraph: React.FC<TherapyCycleGraphProps> = ({
                   },
                 ]}
               >
-                <Text style={styles.phaseText}>
-                  {phase.type.charAt(0).toUpperCase() + phase.type.slice(1)}
+                <Text style={styles.phaseText} numberOfLines={1}>
+                  {getPhaseLabel()}
                 </Text>
               </View>
             );
@@ -215,7 +236,7 @@ const TherapyCycleGraph: React.FC<TherapyCycleGraphProps> = ({
                   },
                 ]}
               >
-                <Text style={styles.activityText}>{activity.activity}</Text>
+                <Text style={styles.activityText} numberOfLines={1}>{activity.activity}</Text>
               </View>
             );
           })}
@@ -459,11 +480,13 @@ const styles = StyleSheet.create({
     borderRightColor: '#FFF',
     borderWidth: 1,
     borderColor: 'rgba(0,0,0,0.1)',
+    paddingHorizontal: 2,
   },
   phaseText: {
-    fontSize: 11,
+    fontSize: 10,
     fontWeight: '600',
     color: '#333',
+    textAlign: 'center',
   },
   activityBlock: {
     position: 'absolute',
@@ -475,11 +498,13 @@ const styles = StyleSheet.create({
     borderRightColor: '#FFF',
     borderWidth: 1,
     borderColor: 'rgba(0,0,0,0.1)',
+    paddingHorizontal: 4,
   },
   activityText: {
-    fontSize: 11,
+    fontSize: 10,
     fontWeight: '600',
     color: '#333',
+    textAlign: 'center',
   },
   xAxis: {
     height: 50,
