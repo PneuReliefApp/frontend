@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { NavigationContainer } from "@react-navigation/native";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
@@ -7,6 +7,7 @@ import { Provider as PaperProvider } from "react-native-paper";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 
 import app from "./src/services/firebaseConfig";
+import { setupBackgroundSync } from "./src/services/backgroundSync";
 
 import HomeScreen from "./src/screens/HomeScreen";
 import ReportsScreen from "./src/screens/ReportsScreen";
@@ -37,6 +38,23 @@ function SettingsStackNavigator() {
 }
 
 export default function App() {
+  // ============================================================================
+  // BACKGROUND SYNC SETUP
+  // ============================================================================
+  // Automatically syncs local sensor data to backend every 1 hour
+  useEffect(() => {
+    // TODO: Replace 'user123' with actual userId from Firebase Auth
+    // Example: const user = auth().currentUser; const userId = user?.uid;
+    const userId = 'user123';
+    
+    // Setup auto-sync every 1 hour (3600000 ms)
+    console.log('🚀 Initializing background sync...');
+    const cleanup = setupBackgroundSync(userId, 3600000);
+    
+    // Cleanup interval when app unmounts
+    return cleanup;
+  }, []);
+
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <PaperProvider>
