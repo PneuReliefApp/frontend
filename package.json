@@ -43,6 +43,7 @@
     "victory-native": "35.5.5"
   },
   "devDependencies": {
+    "@react-native-community/cli": "^20.0.2",
     "@types/react": "~19.1.0",
     "babel-preset-expo": "~54.0.9",
     "typescript": "~5.9.2"
