@@ -39,6 +39,7 @@
     "three": "0.166.1"
   },
   "devDependencies": {
+    "@react-native-community/cli": "^20.0.2",
     "@types/react": "~19.1.0",
     "babel-preset-expo": "^54.0.2",
     "typescript": "~5.9.2"

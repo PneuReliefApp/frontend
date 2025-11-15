@@ -22,7 +22,7 @@ import {
   IconButton,
 } from "react-native-paper";
 import Slider from "@react-native-community/slider";
-
+import PressureGraph from "../components/SimplePressureGraph";
 import { checkConnection } from "../services/api";
 import { db } from "../services/firebaseConfig";
 import {
@@ -38,6 +38,7 @@ import {
   BLEInstance,
   requestBluetoothPermissions,
 } from "../services/bluetooth";
+import { Buffer } from "buffer";
 
 export default function HomeScreen() {
   // ✅ Connection states
@@ -58,10 +59,21 @@ export default function HomeScreen() {
   const [loading, setLoading] = useState<boolean>(true);
   const [connected, setConnected] = React.useState<boolean | null>(null);
   const [device, setDevice] = useState<any>();
+  const [scannedDevices, setScannedDevices] = useState<any[]>([]);
+
+  const [pressure, setPressure] = useState<number | null>(null);
+  const [pressureReadings, setPressureReadings] = useState<number[]>([]);
+  const maxPoints = 50;
+  const [bluetoothState, setBluetoothState] = useState("Unknown");
 
   const manager = BLEInstance.manager;
-  const SERVICE_UUID = "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"; // replace with your ESP32 service UUID
-  const CHARACTERISTIC_UUID = "yyyyyyyy-yyyy-yyyy-yyyy-yyyyyyyyyyyy";
+
+  const SERVICE_UUID = "12345678-1234-5678-1234-56789abcdef0";
+  const PRESSURE_CHAR_UUID = "12345678-1234-5678-1234-56789abcdef1";
+  const COMMAND_CHAR_UUID = "12345678-1234-5678-1234-56789abcdef2";
+
+  const ESP32_NAME = "PneumaticSystem";
+
   // Check backend connection
   React.useEffect(() => {
     const testConnection = async () => {
@@ -72,7 +84,7 @@ export default function HomeScreen() {
   }, []);
 
   const setupOnDeviceDisconnected = (deviceId: any) => {
-    manager.onDeviceDisconnected(deviceId, (error, device) => {
+    manager.onDeviceDisconnected(deviceId, (error: any, device: any) => {
       if (error) {
         console.error("❌ Disconnection error:", error);
       }
@@ -84,19 +96,55 @@ export default function HomeScreen() {
         device.connect().then(() => {
           setBluetoothConnected(true);
           console.log("✅ Reconnected successfully");
+          startMonitoring(device);
         });
       }
     });
   };
 
+  const startMonitoring = (connectedDevice: any) => {
+    connectedDevice.monitorCharacteristicForService(
+      SERVICE_UUID,
+      PRESSURE_CHAR_UUID,
+      (error: any, characteristic: any) => {
+        if (error) {
+          console.error("❌ Pressure monitor error:", error);
+          return;
+        }
+
+        if (characteristic?.value) {
+          try {
+            const decoded = Buffer.from(
+              characteristic.value,
+              "base64"
+            ).toString("utf8");
+            const reading = parseFloat(decoded.trim());
+            if (!isNaN(reading)) {
+              setPressure(reading);
+              setPressureReadings((prev) => {
+                const updated = [...prev, reading];
+                return updated.length > maxPoints
+                  ? updated.slice(updated.length - maxPoints)
+                  : updated;
+              });
+            }
+          } catch (e) {
+            console.error("Failed to decode pressure data:", e);
+          }
+        }
+      }
+    );
+  };
+
   const scanAndConnect = () => {
-    manager.startDeviceScan(null, null, async (error, device) => {
+    console.log("Scanning for bluetooth device");
+    manager.startDeviceScan(null, null, async (error: any, device: any) => {
       if (error) {
         manager.stopDeviceScan();
         return;
       }
-      if (device?.name === "ESP32_BLUETOOTH") {
-        console.log(device?.name);
+      if (device?.name === ESP32_NAME) {
+        console.log("Found device: ", device.name);
         setBluetoothConnected(true);
         manager.stopDeviceScan();
 
@@ -109,26 +157,36 @@ export default function HomeScreen() {
           const characteristic =
             await connectedDevice.readCharacteristicForService(
               SERVICE_UUID,
-              CHARACTERISTIC_UUID
+              PRESSURE_CHAR_UUID
             );
           console.log("Characteristic value:", characteristic.value);
-
-          device.monitorCharacteristicForService(
-            SERVICE_UUID,
-            CHARACTERISTIC_UUID,
-            (error, characteristic) => {
-              if (characteristic?.value) {
-              }
-            }
-          );
+          startMonitoring(connectedDevice);
         } catch (err) {
           console.error("Connection error:", err);
           setBluetoothConnected(false);
         }
       } else {
-        setBluetoothConnected(false);
+        //   setBluetoothConnected(false);
       }
     });
+  };
+
+  const sendCommand = async (cmd: "INFLATE" | "DEFLATE") => {
+    if (!device) {
+      console.warn("No device connected");
+      return;
+    }
+
+    try {
+      await device.writeCharacteristicWithResponseForService(
+        SERVICE_UUID,
+        COMMAND_CHAR_UUID,
+        Buffer.from(cmd, "utf8").toString("base64")
+      );
+      console.log(`[SENT] Command sent: ${cmd}`);
+    } catch (err) {
+      console.error("❌ Failed to send command:", err);
+    }
   };
 
   // --- Function to test Firestore ---
@@ -219,20 +277,29 @@ export default function HomeScreen() {
         console.log("Bluetooth granted");
       }
 
-      const state = await manager.state(); // get current state
-      if (state !== "PoweredOn") {
-        Alert.alert(
-          "Bluetooth is off",
-          "Please turn on Bluetooth to connect to devices",
-          [{ text: "OK" }]
-        );
-        return;
-      }
-      const subscription = manager.onStateChange((state) => {
+      // const state = await manager.state(); // get current state
+      // console.log("BT STATE:", state);
+      // if (state !== "PoweredOn") {
+      //   Alert.alert(
+      //     "Bluetooth is off",
+      //     "Please turn on Bluetooth to connect to devices",
+      //     [{ text: "OK" }]
+      //   );
+      //   return;
+      // }
+      const subscription = manager.onStateChange((state: any) => {
         console.log("init bluetooth111");
+        console.log(state);
+        setBluetoothState(state);
         if (state === "PoweredOn") {
           scanAndConnect();
-          subscription.remove();
+        } else {
+          console.log("Bluetooth not on");
+          Alert.alert(
+            "Bluetooth is off",
+            "Please turn on Bluetooth to connect to devices",
+            [{ text: "OK" }]
+          );
         }
       }, true);
       return () => subscription.remove();
@@ -272,6 +339,96 @@ export default function HomeScreen() {
               </View>
             </View>
           </ImageBackground>
+        </Card>
+
+        <Card style={styles.sectionCard} elevation={2}>
+          <Card.Content>
+            <Card.Content>
+              <Text style={{ fontSize: 16, fontWeight: "bold" }}>
+                Bluetooth Testing Section for Hardware
+              </Text>
+            </Card.Content>
+            <View
+              style={{
+                flex: 1,
+                marginTop: 12,
+                gap: 6,
+                marginBottom: 12,
+              }}
+            >
+              <TouchableOpacity
+                style={{
+                  backgroundColor:
+                    bluetoothState === "PoweredOn" ? "green" : "red",
+                  padding: 12,
+                  borderRadius: 8,
+                }}
+              >
+                <Text style={{ color: "white" }}>
+                  {bluetoothState === "PoweredOn"
+                    ? "Bluetooth ON"
+                    : "Bluetooth OFF"}
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={{
+                  backgroundColor: bluetoothConnected ? "green" : "red",
+                  padding: 12,
+                  borderRadius: 8,
+                }}
+              >
+                <Text style={{ color: "white" }}>
+                  {bluetoothConnected
+                    ? "ESP32 Connected"
+                    : "ESP32 Disconnected"}
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={{
+                  backgroundColor: "#4A90E2",
+                  padding: 12,
+                  borderRadius: 8,
+                }}
+                onPress={() => scanAndConnect()}
+                disabled={!!bluetoothConnected}
+              >
+                <Text style={{ color: "white" }}>Connect to ESP32</Text>
+              </TouchableOpacity>
+            </View>
+            <Text
+              style={{
+                fontWeight: "600",
+                fontSize: 16,
+                marginBottom: 8,
+              }}
+            >
+              Pressure (bar):
+            </Text>
+            <PressureGraph data={pressureReadings} maxPoints={50} />
+            <View
+              style={{
+                flexDirection: "row",
+                justifyContent: "space-around",
+                marginTop: 12,
+              }}
+            >
+              <Button
+                mode="contained"
+                onPress={() => sendCommand("INFLATE")}
+                style={{ backgroundColor: "#3498db" }}
+              >
+                Inflate
+              </Button>
+              <Button
+                mode="contained"
+                onPress={() => sendCommand("DEFLATE")}
+                style={{ backgroundColor: "#e74c3c" }}
+              >
+                Deflate
+              </Button>
+            </View>
+            
+          </Card.Content>
         </Card>
 
         {/* 3D Foot Model Visualization */}
