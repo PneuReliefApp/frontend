@@ -41,19 +41,43 @@ const ReportsScreen: React.FC = () => {
 
   // New Placeholder Data for Pneumatic Activity Table
   const pneumaticActivityData = [
-    { zone: "Posterior toe", inflated: "10:15", sustained: "10:20", deflated: "10:25" },
-    { zone: "Heel pad", inflated: "10:16", sustained: "10:21", deflated: "10:26" },
-    { zone: "Medial malleolus", inflated: "10:17", sustained: "10:22", deflated: "10:27" },
-    { zone: "First metatarsal", inflated: "10:18", sustained: "10:23", deflated: "10:28" },
-    { zone: "Lateral malleolus", inflated: "10:19", sustained: "10:24", deflated: "10:29" },
+    {
+      zone: "Posterior toe",
+      inflated: "10:15",
+      sustained: "10:20",
+      deflated: "10:25",
+    },
+    {
+      zone: "Heel pad",
+      inflated: "10:16",
+      sustained: "10:21",
+      deflated: "10:26",
+    },
+    {
+      zone: "Medial malleolus",
+      inflated: "10:17",
+      sustained: "10:22",
+      deflated: "10:27",
+    },
+    {
+      zone: "First metatarsal",
+      inflated: "10:18",
+      sustained: "10:23",
+      deflated: "10:28",
+    },
+    {
+      zone: "Lateral malleolus",
+      inflated: "10:19",
+      sustained: "10:24",
+      deflated: "10:29",
+    },
   ];
 
   return (
     <SafeAreaView style={styles.container}>
       <Text style={styles.title}>Reports</Text>
-      <Button mode="outlined" style={styles.downloadButton}>
-        Download
-      </Button>
+
+      {/* Removed the top 'Download' button to match your new design */}
 
       <ScrollView contentContainerStyle={styles.scrollContent}>
         {/* ========== Pressure Readings Section ========== */}
@@ -207,9 +231,15 @@ const ReportsScreen: React.FC = () => {
             <DataTable>
               <DataTable.Header>
                 <DataTable.Title style={{ flex: 2 }}>Zone</DataTable.Title>
-                <DataTable.Title style={styles.centerColumn}>Inflated</DataTable.Title>
-                <DataTable.Title style={styles.centerColumn}>Sustained</DataTable.Title>
-                <DataTable.Title style={styles.centerColumn}>Deflated</DataTable.Title>
+                <DataTable.Title style={styles.centerColumn}>
+                  Inflated
+                </DataTable.Title>
+                <DataTable.Title style={styles.centerColumn}>
+                  Sustained
+                </DataTable.Title>
+                <DataTable.Title style={styles.centerColumn}>
+                  Deflated
+                </DataTable.Title>
               </DataTable.Header>
 
               {pneumaticActivityData.map((item, index) => (
@@ -219,15 +249,45 @@ const ReportsScreen: React.FC = () => {
                       {item.zone}
                     </Text>
                   </DataTable.Cell>
-                  <DataTable.Cell style={styles.centerColumn}>{item.inflated}</DataTable.Cell>
-                  <DataTable.Cell style={styles.centerColumn}>{item.sustained}</DataTable.Cell>
-                  <DataTable.Cell style={styles.centerColumn}>{item.deflated}</DataTable.Cell>
+                  <DataTable.Cell style={styles.centerColumn}>
+                    {item.inflated}
+                  </DataTable.Cell>
+                  <DataTable.Cell style={styles.centerColumn}>
+                    {item.sustained}
+                  </DataTable.Cell>
+                  <DataTable.Cell style={styles.centerColumn}>
+                    {item.deflated}
+                  </DataTable.Cell>
                 </DataTable.Row>
               ))}
             </DataTable>
-
           </Card.Content>
         </Card>
+
+        {/* ========== NEW: PDF Download Buttons ========== */}
+        <View style={styles.buttonContainer}>
+          <Button
+            mode="contained"
+            icon="file-download-outline"
+            style={styles.pdfButton}
+            contentStyle={{ justifyContent: "flex-start", paddingLeft: 10 }}
+            buttonColor="#0f172a" // Dark Navy Blue
+            onPress={() => console.log("Download Pressure PDF")}
+          >
+            Download PDF — Pressure Readings
+          </Button>
+
+          <Button
+            mode="contained"
+            icon="file-download-outline"
+            style={styles.pdfButton}
+            contentStyle={{ justifyContent: "flex-start", paddingLeft: 10 }}
+            buttonColor="#0f172a" // Dark Navy Blue
+            onPress={() => console.log("Download Pneumatic PDF")}
+          >
+            Download PDF — Pneumatic Readings
+          </Button>
+        </View>
 
       </ScrollView>
     </SafeAreaView>
@@ -243,17 +303,14 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     padding: 16,
+    paddingBottom: 40,
   },
   title: {
     fontSize: 22,
     fontWeight: "700",
     marginTop: 10,
+    marginBottom: 10,
     textAlign: "center",
-  },
-  downloadButton: {
-    width: "70%",
-    alignSelf: "center",
-    marginVertical: 10,
   },
   sectionCard: {
     marginBottom: 16,
@@ -266,19 +323,6 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: "#333",
   },
-  gridContainer: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    justifyContent: "space-between",
-  },
-  gridCard: {
-    width: "48%",
-    marginVertical: 8,
-    borderRadius: 10,
-    borderTopWidth: 4,
-    elevation: 2,
-    backgroundColor: "#fff",
-  },
   eventItem: {
     paddingVertical: 4,
     paddingHorizontal: 8,
@@ -286,9 +330,18 @@ const styles = StyleSheet.create({
   eventText: {
     fontSize: 14,
   },
-
   centerColumn: {
     flex: 1,
     justifyContent: "center",
+  },
+
+  buttonContainer: {
+    marginTop: 10,
+    gap: 12,
+  },
+  pdfButton: {
+    borderRadius: 8,
+    paddingVertical: 4,
+    width: "100%",
   },
 });
