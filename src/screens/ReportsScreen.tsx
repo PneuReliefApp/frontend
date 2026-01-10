@@ -3,25 +3,18 @@ import { SafeAreaView, ScrollView, StyleSheet, View, Text } from "react-native";
 import {
   Card,
   Button,
-  Title,
-  Paragraph,
   useTheme,
   Divider,
   List,
   Avatar,
+  DataTable,
 } from "react-native-paper";
 import TherapyCycleGraph from "../components/TherapyCycleGraph";
 
 const ReportsScreen: React.FC = () => {
   const theme = useTheme();
 
-  // Sample data
-  const pressureReadings = [
-    { id: 1, title: "Average Pressure", value: "72 mmHg", color: "#4caf50" }, // green
-    { id: 2, title: "Peak Pressure", value: "110 mmHg", color: "#f44336" }, // red
-    { id: 3, title: "Lowest Pressure", value: "60 mmHg", color: "#2196f3" }, // blue
-  ];
-
+  // Sample data for existing sections
   const highPressureEvents = [
     {
       id: 1,
@@ -46,7 +39,14 @@ const ReportsScreen: React.FC = () => {
     },
   ];
 
-
+  // New Placeholder Data for Pneumatic Activity Table
+  const pneumaticActivityData = [
+    { zone: "Posterior toe", inflated: "10:15", sustained: "10:20", deflated: "10:25" },
+    { zone: "Heel pad", inflated: "10:16", sustained: "10:21", deflated: "10:26" },
+    { zone: "Medial malleolus", inflated: "10:17", sustained: "10:22", deflated: "10:27" },
+    { zone: "First metatarsal", inflated: "10:18", sustained: "10:23", deflated: "10:28" },
+    { zone: "Lateral malleolus", inflated: "10:19", sustained: "10:24", deflated: "10:29" },
+  ];
 
   return (
     <SafeAreaView style={styles.container}>
@@ -62,9 +62,8 @@ const ReportsScreen: React.FC = () => {
             <Text style={styles.sectionTitle}>Pressure Readings</Text>
             <Divider style={{ marginVertical: 8 }} />
 
-            {/* Grid-style layout */}
             <View style={{ padding: 16 }}>
-              {/* Avg Pressure on Top (Full Width) */}
+              {/* Avg Pressure */}
               <View
                 style={{
                   backgroundColor: "#f2f2f2",
@@ -76,7 +75,7 @@ const ReportsScreen: React.FC = () => {
                 <View style={{ flexDirection: "row" }}>
                   <Avatar.Icon
                     size={40}
-                    icon="speedometer" // you can pick "speedometer", "gauge", etc.
+                    icon="speedometer"
                     style={{ backgroundColor: "#4caf50", marginRight: 12 }}
                   />
                   <View>
@@ -88,7 +87,7 @@ const ReportsScreen: React.FC = () => {
                 </View>
               </View>
 
-              {/* Lowest + Peak in One Row (Each Half Width) */}
+              {/* Lowest + Peak */}
               <View style={{ flexDirection: "row", gap: 10 }}>
                 <View
                   style={{
@@ -113,7 +112,6 @@ const ReportsScreen: React.FC = () => {
                   </View>
                 </View>
 
-                {/* Peak Pressure */}
                 <View
                   style={{
                     flex: 1,
@@ -199,6 +197,38 @@ const ReportsScreen: React.FC = () => {
             <TherapyCycleGraph />
           </Card.Content>
         </Card>
+
+        {/* ========== Pneumatic Activity Table Section ========== */}
+        <Card style={styles.sectionCard}>
+          <Card.Content>
+            <Text style={styles.sectionTitle}>Pneumatic Activity</Text>
+            <Divider style={{ marginVertical: 8 }} />
+
+            <DataTable>
+              <DataTable.Header>
+                <DataTable.Title style={{ flex: 2 }}>Zone</DataTable.Title>
+                <DataTable.Title style={styles.centerColumn}>Inflated</DataTable.Title>
+                <DataTable.Title style={styles.centerColumn}>Sustained</DataTable.Title>
+                <DataTable.Title style={styles.centerColumn}>Deflated</DataTable.Title>
+              </DataTable.Header>
+
+              {pneumaticActivityData.map((item, index) => (
+                <DataTable.Row key={index}>
+                  <DataTable.Cell style={{ flex: 2 }}>
+                    <Text style={{ fontWeight: "600", color: "#2c3e50" }}>
+                      {item.zone}
+                    </Text>
+                  </DataTable.Cell>
+                  <DataTable.Cell style={styles.centerColumn}>{item.inflated}</DataTable.Cell>
+                  <DataTable.Cell style={styles.centerColumn}>{item.sustained}</DataTable.Cell>
+                  <DataTable.Cell style={styles.centerColumn}>{item.deflated}</DataTable.Cell>
+                </DataTable.Row>
+              ))}
+            </DataTable>
+
+          </Card.Content>
+        </Card>
+
       </ScrollView>
     </SafeAreaView>
   );
@@ -249,12 +279,16 @@ const styles = StyleSheet.create({
     elevation: 2,
     backgroundColor: "#fff",
   },
-
   eventItem: {
     paddingVertical: 4,
     paddingHorizontal: 8,
   },
   eventText: {
     fontSize: 14,
+  },
+
+  centerColumn: {
+    flex: 1,
+    justifyContent: "center",
   },
 });
