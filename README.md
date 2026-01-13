@@ -57,9 +57,3 @@ This file stores your backend URL and Firebase configuration securely.
 2. In another terminal, start the frontend using:
 npx expo start
 3. Launch the app using Expo Go (scan QR) or via simulator (press `i` for iOS / `a` for Android). <br />
-
-### 🔥 Firebase Configuration
-This project uses Firebase for Firestore and Analytics. <br />
-All Firebase credentials are stored in the `.env` file and imported through `firebaseConfig.ts`. <br />
-Ensure that you have access to the Firebase project (**Project PneuRelief**) and that Firestore is enabled. <br />
-If testing locally, you can use development rules in Firestore and disable them later for production. <br />
