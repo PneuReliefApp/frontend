@@ -18,6 +18,7 @@ import NotifsScreen from "./src/screens/Settings/NotifsScreen";
 import AuthScreen from "./src/screens/AuthScreen";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import CalibrationsScreen from "./src/screens/Settings/CalibrationsScreen";
+import PneumaticsScreen from './src/screens/PneumaticsScreen';
 
 const Tab = createBottomTabNavigator();
 const SettingsStack = createNativeStackNavigator();
@@ -102,22 +103,22 @@ export default function App() {
                         iconName = "circle";
                     }
 
-                    return (
-                      <MaterialCommunityIcons
-                        name={iconName as any}
-                        size={size}
-                        color={color}
-                      />
-                    );
-                  },
-                })}
-              >
-                <Tab.Screen name="Home" component={HomeScreen} />
-                <Tab.Screen name="Reports" component={ReportsScreen} />
-                <Tab.Screen name="Settings" component={SettingsStackNavigator} />
-                <Tab.Screen name="Auth" component={AuthScreen} />
-              </Tab.Navigator>
-            )}
+                  return (
+                    <MaterialCommunityIcons
+                      name={iconName as any}
+                      size={size}
+                      color={color}
+                    />
+                  );
+                },
+              })}
+            >
+              <Tab.Screen name="Home" component={HomeScreen} />
+              <Tab.Screen name="Pneumatics" component={PneumaticsScreen} />
+              <Tab.Screen name="Reports" component={ReportsScreen} />
+              <Tab.Screen name="Settings" component={SettingsStackNavigator} />
+              <Tab.Screen name="Auth" component={AuthScreen} />
+            </Tab.Navigator>
           </NavigationContainer>
         </SafeAreaProvider>
       </PaperProvider>
