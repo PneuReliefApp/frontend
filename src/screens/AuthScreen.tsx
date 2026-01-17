@@ -1,10 +1,6 @@
 import React, { useState } from "react";
 import { View, TextInput, Button, Text, StyleSheet } from "react-native";
-import { auth } from "../services/firebaseConfig";
-import {
-  createUserWithEmailAndPassword,
-  signInWithEmailAndPassword,
-} from "firebase/auth";
+import { supabase } from "../services/supabase_client";
 
 export default function AuthScreen() {
   const [email, setEmail] = useState("");
@@ -12,26 +8,37 @@ export default function AuthScreen() {
   const [message, setMessage] = useState("");
 
   const signUp = async () => {
-    try {
-      await createUserWithEmailAndPassword(auth, email, password);
-      setMessage("✅ User created successfully!");
-    } catch (error: any) {
-      setMessage(`❌ ${error.message}`);
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password
+    });
+
+    if (error) {
+      setMessage(`Signup Error: ${error.message}`)
+    } else if (data.user && data.session === null) {
+      // when email confirmation is on
+      setMessage("Success! Please check your email for a confirmation link.")
+    } else {
+      setMessage("Account created and logged in!")
     }
   };
 
   const signIn = async () => {
-    try {
-      await signInWithEmailAndPassword(auth, email, password);
-      setMessage("✅ Logged in successfully!");
-    } catch (error: any) {
-      setMessage(`❌ ${error.message}`);
+    const { error } = await supabase.auth.signInWithPassword({
+      email,
+      password
+    });
+
+    if (error) {
+      setMessage(`Login Error: ${error.message}`)
+    } else {
+      setMessage("Logged in Succesfully!")
     }
   };
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Firebase Authentication</Text>
+      <Text style={styles.title}>Supabase Authentication</Text>
       <TextInput
         placeholder="Email"
         value={email}
