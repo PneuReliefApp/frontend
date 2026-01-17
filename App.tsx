@@ -74,34 +74,37 @@ export default function App() {
     return () => subscription.unsubscribe();
   }, []);
 
-  return (
-    <GestureHandlerRootView style={{ flex: 1 }}>
-      <PaperProvider>
-        <SafeAreaProvider>
-          <NavigationContainer>
-            {!session ? (
-              <AuthScreen />
-            ) : (
-              <Tab.Navigator
-                initialRouteName="Home"
-                screenOptions={({ route }) => ({
-                  headerShown: false,
-                  tabBarIcon: ({ color, size }) => {
-                    let iconName: string;
+return (
+  <GestureHandlerRootView style={{ flex: 1 }}>
+    <PaperProvider>
+      <SafeAreaProvider>
+        <NavigationContainer>
+          {!session ? (
+            <AuthScreen />
+          ) : (
+            <Tab.Navigator
+              initialRouteName="Home"
+              screenOptions={({ route }) => ({
+                headerShown: false,
+                tabBarIcon: ({ color, size }) => {
+                  let iconName: string;
 
-                    switch (route.name) {
-                      case "Home":
-                        iconName = "home";
-                        break;
-                      case "Reports":
-                        iconName = "clipboard-pulse";
-                        break;
-                      case "Settings":
-                        iconName = "cog";
-                        break;
-                      default:
-                        iconName = "circle";
-                    }
+                  switch (route.name) {
+                    case "Home":
+                      iconName = "home";
+                      break;
+                    case "Pneumatics":
+                      iconName = "air-filter";
+                      break;
+                    case "Reports":
+                      iconName = "clipboard-pulse";
+                      break;
+                    case "Settings":
+                      iconName = "cog";
+                      break;
+                    default:
+                      iconName = "circle";
+                  }
 
                   return (
                     <MaterialCommunityIcons
@@ -117,11 +120,11 @@ export default function App() {
               <Tab.Screen name="Pneumatics" component={PneumaticsScreen} />
               <Tab.Screen name="Reports" component={ReportsScreen} />
               <Tab.Screen name="Settings" component={SettingsStackNavigator} />
-              <Tab.Screen name="Auth" component={AuthScreen} />
             </Tab.Navigator>
-          </NavigationContainer>
-        </SafeAreaProvider>
-      </PaperProvider>
-    </GestureHandlerRootView>
-  );
+          )}
+        </NavigationContainer>
+      </SafeAreaProvider>
+    </PaperProvider>
+  </GestureHandlerRootView>
+);
 }
