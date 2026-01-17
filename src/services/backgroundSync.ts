@@ -1,119 +1,74 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { db } from './database';
 import { uploadSensorData, SensorReading } from './api';
 
-// Storage keys
-const UNSYNCED_DATA_KEY = 'unsyncedSensorReadings';
-const LAST_SYNC_KEY = 'lastSyncTimestamp';
-
 // Configuration
-const SYNC_INTERVAL_MS = 3600000; // 1 hour = 3600000 ms
-const MAX_RETRIES = 3;
+const SYNC_INTERVAL_MS = 600000; // time in ms btwn sync to cloud
 
-interface SyncResult {
+export interface SyncResult {
   success: boolean;
   readingsCount: number;
-  aggregatesCreated?: number;
   error?: Error;
 }
 
-/**
- * Add sensor readings to local storage for later syncing
- * Call this function when you receive new sensor data from ESP32
- * 
- * @example
- * const newReading = {
- *   patch_id: 'bottom_left',
- *   pressure: 42.5,
- *   timestamp: new Date().toISOString()
- * };
- * await addReadingsToLocalQueue([newReading]);
- */
-export async function addReadingsToLocalQueue(
-  newReadings: SensorReading[]
-): Promise<void> {
+// Optimized Batch Insert for SQLite
+export async function addReadingsToLocalQueue(newReadings: SensorReading[]): Promise<void> {
   try {
-    // Get existing unsynced data
-    const existingData = await AsyncStorage.getItem(UNSYNCED_DATA_KEY);
-    const existingReadings: SensorReading[] = existingData
-      ? JSON.parse(existingData)
-      : [];
-
-    // Append new readings
-    const updatedReadings = [...existingReadings, ...newReadings];
-
-    // Save back to storage
-    await AsyncStorage.setItem(
-      UNSYNCED_DATA_KEY,
-      JSON.stringify(updatedReadings)
-    );
-
-    console.log(
-      `📦 Added ${newReadings.length} readings to local queue. Total: ${updatedReadings.length}`
-    );
+    await db.withTransactionAsync(async () => {
+      for (const r of newReadings) {
+        await db.runAsync(
+          'INSERT INTO raw_packets (patch_id, pressure, timestamp) VALUES (?, ?, ?)',
+          [r.patch_id, r.pressure, r.timestamp]
+        );
+      }
+    });
+    // Removed reference to 'updatedReadings' as SQLite doesn't need to keep the whole array in memory
+    console.log(`SQLite: Added ${newReadings.length} readings to local database.`);
   } catch (error) {
-    console.error('❌ Error adding readings to local queue:', error);
+    console.error('Error adding readings to local database:', error);
     throw error;
   }
 }
 
-/**
- * Sync local sensor data to backend
- * This function should be called periodically (every 1 hour)
- * 
- * @param userId - User ID to associate with the readings
- * @param forceSync - Force sync even if there are no readings
- * @returns SyncResult with success status and details
- */
-export async function syncLocalDataToBackend(
-  userId: string,
-  forceSync: boolean = false
-): Promise<SyncResult> {
+
+// Sync local sensor data to backend
+export async function syncLocalDataToBackend(userId: string): Promise<SyncResult> {
   try {
-    console.log('🔄 Starting background sync...');
+    console.log('Starting background sync...');
 
-    // Get unsynced readings from local storage
-    const localData = await AsyncStorage.getItem(UNSYNCED_DATA_KEY);
+    // 1. Fetch unsynced rows from SQLite
+    // 'rows' is defined here to fix the "Cannot find name 'rows'" error
+    const rows = await db.getAllAsync<{ id: number; patch_id: string; pressure: number; timestamp: string }>(
+      'SELECT * FROM raw_packets LIMIT 5000'
+    );
 
-    if (!localData && !forceSync) {
-      console.log('ℹ️ No data to sync');
-      return {
-        success: true,
-        readingsCount: 0,
-      };
+    if (!rows || rows.length === 0) {
+      console.log('No data to sync');
+      return { success: true, readingsCount: 0 };
     }
 
-    const readings: SensorReading[] = localData ? JSON.parse(localData) : [];
+    // 2. Map the database rows to the SensorReading type expected by api.ts
+    const readings: SensorReading[] = rows.map((row) => ({
+      patch_id: row.patch_id,
+      pressure: row.pressure,
+      timestamp: row.timestamp,
+    }));
 
-    if (readings.length === 0 && !forceSync) {
-      console.log('ℹ️ No readings to sync');
-      return {
-        success: true,
-        readingsCount: 0,
-      };
-    }
-
-    // Upload to backend
-    console.log(`📤 Uploading ${readings.length} readings to backend...`);
+    // 3. Upload to backend (api.ts)
+    console.log(`Uploading ${readings.length} readings to backend...`);
     const result = await uploadSensorData(userId, readings);
 
-    // Clear local storage after successful sync
-    await AsyncStorage.removeItem(UNSYNCED_DATA_KEY);
+    // 4. PURGE: Use the 'rows' variable to find the last ID successfully sent
+    const lastId = rows[rows.length - 1].id;
+    await db.runAsync('DELETE FROM raw_packets WHERE id <= ?', [lastId]);
 
-    // Update last sync timestamp
-    await AsyncStorage.setItem(LAST_SYNC_KEY, new Date().toISOString());
-
-    console.log(
-      `✅ Sync successful! Uploaded ${readings.length} readings, created ${result.aggregates_created} aggregates`
-    );
+    console.log(`Sync successful! Purged local storage up to ID: ${lastId}`);
 
     return {
       success: true,
-      readingsCount: readings.length,
-      aggregatesCreated: result.aggregates_created,
+      readingsCount: readings.length
     };
-  } catch (error) {
-    console.error('❌ Sync failed:', error);
-    // Keep data in local storage for next attempt
+  } catch (error: any) {
+    console.error('Sync failed:', error);
     return {
       success: false,
       readingsCount: 0,
@@ -122,90 +77,61 @@ export async function syncLocalDataToBackend(
   }
 }
 
-/**
- * Get the last sync timestamp
- */
-export async function getLastSyncTime(): Promise<Date | null> {
-  try {
-    const timestamp = await AsyncStorage.getItem(LAST_SYNC_KEY);
-    return timestamp ? new Date(timestamp) : null;
-  } catch (error) {
-    console.error('❌ Error getting last sync time:', error);
-    return null;
-  }
-}
+// Setup periodic background sync
+export function setupBackgroundSync(userId: string, intervalMs: number = SYNC_INTERVAL_MS): () => void {
+  console.log(`Setting up background sync (interval: ${intervalMs / 1000}s)`);
 
-/**
- * Get the count of unsynced readings
- */
-export async function getUnsyncedCount(): Promise<number> {
-  try {
-    const localData = await AsyncStorage.getItem(UNSYNCED_DATA_KEY);
-    if (!localData) return 0;
-
-    const readings: SensorReading[] = JSON.parse(localData);
-    return readings.length;
-  } catch (error) {
-    console.error('❌ Error getting unsynced count:', error);
-    return 0;
-  }
-}
-
-/**
- * Setup periodic background sync
- * Call this in your App.tsx or main component
- * 
- * @param userId - User ID to sync data for
- * @param intervalMs - Sync interval in milliseconds (default: 1 hour)
- * @returns Cleanup function to stop the sync interval
- * 
- * @example
- * // In App.tsx or main component
- * useEffect(() => {
- *   const cleanup = setupBackgroundSync('user123', 3600000); // 1 hour
- *   return cleanup; // Stop sync on unmount
- * }, []);
- */
-export function setupBackgroundSync(
-  userId: string,
-  intervalMs: number = SYNC_INTERVAL_MS
-): () => void {
-  console.log(`⏰ Setting up background sync (interval: ${intervalMs / 1000}s)`);
-
-  // Initial sync on setup
-  syncLocalDataToBackend(userId);
-
-  // Set up periodic sync
   const intervalId = setInterval(() => {
     syncLocalDataToBackend(userId);
   }, intervalMs);
 
-  // Return cleanup function
   return () => {
-    console.log('🛑 Stopping background sync');
+    console.log('Stopping background sync');
     clearInterval(intervalId);
   };
 }
 
-/**
- * Manual sync trigger
- * Use this for a "Sync Now" button in your settings
- */
-export async function manualSync(userId: string): Promise<SyncResult> {
-  console.log('🔄 Manual sync triggered');
-  return await syncLocalDataToBackend(userId, true);
-}
-
-/**
- * Clear all local unsynced data (use with caution!)
- * Useful for debugging or if sync is permanently failing
- */
+//Clear all local data
 export async function clearLocalData(): Promise<void> {
   try {
-    await AsyncStorage.removeItem(UNSYNCED_DATA_KEY);
-    console.log('🗑️ Cleared all local unsynced data');
+    await db.runAsync('DELETE FROM raw_packets');
+    console.log('SQLite: Cleared all local sensor data');
   } catch (error) {
-    console.error('❌ Error clearing local data:', error);
+    console.error('Error clearing local data:', error);
     throw error;
   }
 }
+
+// SIMULATION: TEST DATA
+let simulationInterval: NodeJS.Timeout | null = null;
+
+export const startDataSimulation = () => {
+  if (simulationInterval) return;
+
+  console.log("Starting 20Hz Data Simulation...");
+  
+  // Every 1 second, we generate 20 packets (to mimic 20Hz)
+  simulationInterval = setInterval(async () => {
+    const fakeBatch: SensorReading[] = [];
+    
+    for (let i = 0; i < 20; i++) {
+      fakeBatch.push({
+        patch_id: "Heel Pad (Red)",
+        // Generate a random pressure value between 100 and 600
+        pressure: Math.floor(Math.random() * (600 - 100 + 1)) + 100,
+        timestamp: new Date().toISOString()
+      });
+    }
+
+    // Push the batch of 20 to your SQLite logic
+    await addReadingsToLocalQueue(fakeBatch);
+  }, 1000); 
+};
+
+export const stopDataSimulation = () => {
+  if (simulationInterval) {
+    clearInterval(simulationInterval);
+    simulationInterval = null;
+    console.log("Simulation Stopped.");
+  }
+};

@@ -23,15 +23,7 @@ import {
 } from "react-native-paper";
 
 import { checkConnection } from "../services/api";
-import { db } from "../services/firebaseConfig";
-import {
-  collection,
-  addDoc,
-  getDocs,
-  deleteDoc,
-  doc,
-  DocumentData,
-} from "firebase/firestore";
+import { supabase } from "../services/supabase_client";
 import ThreeJSFootVisualization from "../components/ThreeJSFootVisualization";
 import { VictoryChart, VictoryLine, VictoryTheme } from "victory-native";
 import LivePressureGraph from "../graphs/live_pressure_graph";
@@ -45,14 +37,14 @@ export default function HomeScreen() {
   const [bluetoothConnected, setBluetoothConnected] = useState<boolean | null>(
     null
   );
-  const [firestoreConnected, setFirestoreConnected] = useState<boolean | null>(
+  const [supabaseConnected, setSupabaseConnected] = useState<boolean | null>(
     null
   );
 
   const [scrollEnabled, setScrollEnabled] = useState(true);
 
-  // ✅ Firestore data state
-  const [patients, setPatients] = useState<DocumentData[]>([]);
+  // Supabase data state
+  const [patients, setPatients] = useState<any[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [connected, setConnected] = React.useState<boolean | null>(null);
 
@@ -65,19 +57,27 @@ export default function HomeScreen() {
     testConnection();
   }, []);
 
-  // --- Function to test Firestore ---
-  const testFirestoreConnection = async () => {
+  // --- Function to test Supabase ---
+  const testSupabaseConnection = async () => {
     try {
-      const snapshot = await getDocs(collection(db, "patients"));
-      console.log(
-        "✅ Firestore connected. Sample docs:",
-        snapshot.docs.map((doc) => doc.data())
-      );
-      setFirestoreConnected(true);
-      setPatients(snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() })));
-    } catch (error) {
-      console.error("❌ Firestore connection failed:", error);
-      setFirestoreConnected(false);
+      setLoading(true);
+
+      const { data, error, status } = await supabase
+        .from("patients")
+        .select("*")
+        .limit(10);
+      
+      if (error) {
+        throw error;
+      }
+
+      console.log("Supabase connected. Status:", status, "Sample data:", data);
+    
+      setSupabaseConnected(true); // Assuming you renamed the state variable
+      setPatients(data || []);
+    } catch (error: any) { 
+      console.error("Supabase connection failed:", error.message || error);
+      setSupabaseConnected(false);
     } finally {
       setLoading(false);
     }
@@ -86,16 +86,27 @@ export default function HomeScreen() {
   // --- Function to add a test patient ---
   const addPatient = async () => {
     try {
-      const docRef = await addDoc(collection(db, "patients"), {
-        name: `Patient ${patients.length + 1}`,
-        createdAt: new Date().toISOString(),
-      });
-      console.log("✅ Patient added with ID:", docRef.id);
+      const { data, error } = await supabase
+        .from("patients") // Your table name
+        .insert([
+          { 
+            // name set to Patient # for now
+            name: `Patient ${patients.length + 1}`,
+            created_at: new Date().toISOString(), 
+          }
+        ])
+        .select(); // Returns the inserted row
+
+      if (error) throw error;
+
+      console.log("Patient added to Supabase:", data);
       alert("Patient added successfully!");
-      await testFirestoreConnection(); // Refresh list
-    } catch (error) {
-      console.error("❌ Error adding patient:", error);
-      alert("Failed to add patient to Firestore.");
+      
+      // Refresh list using your new Supabase test/fetch function
+      await testSupabaseConnection(); 
+    } catch (error: any) {
+      console.error("Error adding patient:", error.message || error);
+      alert("Failed to add patient to Supabase.");
     }
   };
 
@@ -111,11 +122,17 @@ export default function HomeScreen() {
           style: "destructive",
           onPress: async () => {
             try {
-              await deleteDoc(doc(db, "patients", id));
-              console.log(`🗑️ Deleted patient ${name} (${id})`);
-              await testFirestoreConnection(); // Refresh list
-            } catch (error) {
-              console.error("❌ Error deleting patient:", error);
+              const { error } = await supabase
+                .from("patients")
+                .delete()
+                .eq("id", id); // Matches the 'id' column with the passed variable
+
+              if (error) throw error;
+
+              console.log(`Deleted patient ${name} (${id})`);
+              await testSupabaseConnection(); // Refresh list
+            } catch (error: any) {
+              console.error("Error deleting patient:", error.message || error);
               alert("Failed to delete patient.");
             }
           },
@@ -139,7 +156,7 @@ export default function HomeScreen() {
   useEffect(() => {
     const runAllTests = async () => {
       await testBackendConnection();
-      await testFirestoreConnection();
+      await testSupabaseConnection();
     };
     runAllTests();
   }, []);
@@ -321,9 +338,9 @@ export default function HomeScreen() {
 
           <Text style={styles.text}>
             Firestore:{" "}
-            {firestoreConnected === null
+            {supabaseConnected === null
               ? "Checking..."
-              : firestoreConnected
+              : supabaseConnected
               ? "✅ Connected"
               : "❌ Not Connected"}
           </Text>

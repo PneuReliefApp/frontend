@@ -1,5 +1,4 @@
-import API_URL from "../config";
-// Or later if you move to .env → import { BACKEND_URL as API_URL } from "@env";
+import { BACKEND_URL as API_URL } from "@env";
 
 // ============================================================================
 // TYPES
@@ -17,8 +16,8 @@ export interface SensorUploadRequest {
 }
 
 export interface SensorUploadResponse {
-  message: string;
-  aggregates_created: number;
+  status: string;
+  rows_inserted: number;
 }
 
 export interface PressureAggregate {
@@ -48,9 +47,9 @@ export async function checkConnection(): Promise<boolean> {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 5000); // 5s timeout
 
-    console.log(`🌐 Checking backend connection: ${API_URL}/`);
+    console.log(`🌐 Checking backend connection: ${API_URL}`);
 
-    const res = await fetch(`${API_URL}/`, { signal: controller.signal });
+    const res = await fetch(`${API_URL}`, { signal: controller.signal });
     clearTimeout(timeout);
 
     console.log(`✅ Response status: ${res.status}`);
@@ -87,7 +86,7 @@ export async function uploadSensorData(
   readings: SensorReading[]
 ): Promise<SensorUploadResponse> {
   try {
-    console.log(`📤 Uploading ${readings.length} sensor readings for user ${userId}`);
+    console.log(`Uploading ${readings.length} sensor readings for user ${userId}`);
 
     const response = await fetch(`${API_URL}/sensor-data/upload`, {
       method: "POST",
@@ -102,14 +101,15 @@ export async function uploadSensorData(
 
     if (!response.ok) {
       const errorText = await response.text();
+      console.log(`${API_URL}/sensor-data/upload`);
       throw new Error(`Upload failed: ${response.status} - ${errorText}`);
     }
 
     const data: SensorUploadResponse = await response.json();
-    console.log(`✅ Upload successful: ${data.aggregates_created} aggregates created`);
+    console.log(`Upload successful: ${data.rows_inserted} rows saved to Supabase`);
     return data;
   } catch (error: any) {
-    console.error("❌ Error uploading sensor data:", error.message || error);
+    console.error("Error uploading sensor data:", error.message || error);
     throw error;
   }
 }
