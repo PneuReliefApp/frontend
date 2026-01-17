@@ -28,6 +28,15 @@ import ThreeJSFootVisualization from "../components/ThreeJSFootVisualization";
 import { VictoryChart, VictoryLine, VictoryTheme } from "victory-native";
 import LivePressureGraph from "../graphs/live_pressure_graph";
 import LivePositionGraph from "../graphs/live_position_graph";
+import PressureGraph from "../components/SimplePressureGraph";
+import {
+  initBluetooth,
+  connect,
+  startStreaming,
+  sendCommand,
+  getConnected,
+  type BLCommand,
+} from "../services/bluetooth";
 
 export default function HomeScreen() {
   // ✅ Connection states
@@ -48,6 +57,10 @@ export default function HomeScreen() {
   const [loading, setLoading] = useState<boolean>(true);
   const [connected, setConnected] = React.useState<boolean | null>(null);
 
+  const [pressure, setPressure] = useState<number | null>(null);
+  const [pressureReadings, setPressureReadings] = useState<number[]>([]);
+  const maxPoints = 50;
+
   // Check backend connection
   React.useEffect(() => {
     const testConnection = async () => {
@@ -56,6 +69,45 @@ export default function HomeScreen() {
     };
     testConnection();
   }, []);
+
+  // Handle BLE connection
+  const handleConnect = async () => {
+    try {
+      await connect();
+      setBluetoothConnected(true);
+
+      // Start streaming sensor data
+      await startStreaming((reading: number) => {
+        setPressure(reading);
+        setPressureReadings((prev) => {
+          const updated = [...prev, reading];
+          return updated.length > maxPoints
+            ? updated.slice(updated.length - maxPoints)
+            : updated;
+        });
+      });
+    } catch (err) {
+      console.error("Failed to connect:", err);
+      setBluetoothConnected(false);
+      Alert.alert("Connection Error", "Failed to connect to device");
+    }
+  };
+
+  // Handle sending commands
+  const handleSendCommand = async (section: number, inflate: boolean, deflate: boolean, pump: boolean = false) => {
+    try {
+      const cmd: BLCommand = {
+        section,
+        inflate,
+        deflate,
+        pump,
+      };
+      await sendCommand(cmd);
+    } catch (err) {
+      console.error("Failed to send command:", err);
+      Alert.alert("Command Error", "Failed to send command to device");
+    }
+  };
 
   // --- Function to test Supabase ---
   const testSupabaseConnection = async () => {
@@ -159,6 +211,20 @@ export default function HomeScreen() {
       await testSupabaseConnection();
     };
     runAllTests();
+
+    // Initialize Bluetooth
+    const setupBluetooth = async () => {
+      try {
+        const initialized = await initBluetooth();
+        if (initialized) {
+          // Update connection status
+          setBluetoothConnected(getConnected());
+        }
+      } catch (err) {
+        console.error("Failed to initialize Bluetooth:", err);
+      }
+    };
+    setupBluetooth();
   }, []);
 
   // --- Render UI ---
@@ -193,6 +259,95 @@ export default function HomeScreen() {
               </View>
             </View>
           </ImageBackground>
+        </Card>
+
+        <Card style={styles.sectionCard} elevation={2}>
+          <Card.Content>
+            <Card.Content>
+              <Text style={{ fontSize: 16, fontWeight: "bold" }}>
+                Bluetooth Testing Section for Hardware
+              </Text>
+            </Card.Content>
+            <View
+              style={{
+                flex: 1,
+                marginTop: 12,
+                gap: 6,
+                marginBottom: 12,
+              }}
+            >
+              <TouchableOpacity
+                style={{
+                  backgroundColor: bluetoothConnected ? "green" : "red",
+                  padding: 12,
+                  borderRadius: 8,
+                }}
+              >
+                <Text style={{ color: "white" }}>
+                  {bluetoothConnected ? "Bluetooth Ready" : "Bluetooth Off"}
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={{
+                  backgroundColor: bluetoothConnected ? "green" : "red",
+                  padding: 12,
+                  borderRadius: 8,
+                }}
+              >
+                <Text style={{ color: "white" }}>
+                  {bluetoothConnected
+                    ? "ESP32 Connected"
+                    : "ESP32 Disconnected"}
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={{
+                  backgroundColor: "#4A90E2",
+                  padding: 12,
+                  borderRadius: 8,
+                }}
+                onPress={handleConnect}
+                disabled={!!bluetoothConnected}
+              >
+                <Text style={{ color: "white" }}>Connect to ESP32-PneuRelief</Text>
+              </TouchableOpacity>
+            </View>
+            <Text
+              style={{
+                fontWeight: "600",
+                fontSize: 16,
+                marginBottom: 8,
+              }}
+            >
+              Pressure (bar):
+            </Text>
+            <PressureGraph data={pressureReadings} maxPoints={50} />
+            <View
+              style={{
+                flexDirection: "row",
+                justifyContent: "space-around",
+                marginTop: 12,
+              }}
+            >
+              <Button
+                mode="contained"
+                onPress={() => handleSendCommand(0, true, false)}
+                style={{ backgroundColor: "#3498db" }}
+                disabled={!bluetoothConnected}
+              >
+                Inflate Section 0
+              </Button>
+              <Button
+                mode="contained"
+                onPress={() => handleSendCommand(0, false, true)}
+                style={{ backgroundColor: "#e74c3c" }}
+                disabled={!bluetoothConnected}
+              >
+                Deflate Section 0
+              </Button>
+            </View>
+            
+          </Card.Content>
         </Card>
 
         {/* 3D Foot Model Visualization */}
