@@ -28,6 +28,7 @@ import ThreeJSFootVisualization from "../components/ThreeJSFootVisualization";
 import { VictoryChart, VictoryLine, VictoryTheme } from "victory-native";
 import LivePressureGraph from "../graphs/live_pressure_graph";
 import LivePositionGraph from "../graphs/live_position_graph";
+import PressureGraph from "../components/SimplePressureGraph";
 import {
   BLEInstance,
   requestBluetoothPermissions,
