@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { NavigationContainer } from "@react-navigation/native";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
@@ -6,7 +6,9 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 import { Provider as PaperProvider } from "react-native-paper";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 
-import app from "./src/services/firebaseConfig";
+import { supabase } from "./src/services/supabase_client"; 
+import { Session } from "@supabase/supabase-js";
+import { initDatabase } from "./src/services/database";
 import { setupBackgroundSync } from "./src/services/backgroundSync";
 
 import HomeScreen from "./src/screens/HomeScreen";
@@ -39,21 +41,37 @@ function SettingsStackNavigator() {
 }
 
 export default function App() {
-  // ============================================================================
-  // BACKGROUND SYNC SETUP
-  // ============================================================================
-  // Automatically syncs local sensor data to backend every 1 hour
+  const [session, setSession] = useState<Session | null>(null)
+
   useEffect(() => {
-    // TODO: Replace 'user123' with actual userId from Firebase Auth
-    // Example: const user = auth().currentUser; const userId = user?.uid;
-    const userId = 'user123';
+    initDatabase();
+  }, []);
+
+  useEffect(() => {
+    // check current supabase session on mount
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session)
+    });
+
+    // listen for auth changes login/logout/token refresh
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session);
+
+      if (session?.user) {
+        console.log(`User authenticated: ${session.user.id}`)
+
+        // Startup the sync process once we have a real UID
+        const cleanupSync = setupBackgroundSync(session.user.id, 600000);
+
+        // Stops the sync if the user logs out
+        return () => cleanupSync();
+      } else {
+        console.log("No user logged in.");
+      }
+    });
     
-    // Setup auto-sync every 1 hour (3600000 ms)
-    console.log('🚀 Initializing background sync...');
-    const cleanup = setupBackgroundSync(userId, 3600000);
-    
-    // Cleanup interval when app unmounts
-    return cleanup;
+    // Cleanup the listener when the app unmounts
+    return () => subscription.unsubscribe();
   }, []);
 
   return (
@@ -61,26 +79,29 @@ export default function App() {
       <PaperProvider>
         <SafeAreaProvider>
           <NavigationContainer>
-            <Tab.Navigator
-              initialRouteName="Home"
-              screenOptions={({ route }) => ({
-                headerShown: false,
-                tabBarIcon: ({ color, size }) => {
-                  let iconName: string;
+            {!session ? (
+              <AuthScreen />
+            ) : (
+              <Tab.Navigator
+                initialRouteName="Home"
+                screenOptions={({ route }) => ({
+                  headerShown: false,
+                  tabBarIcon: ({ color, size }) => {
+                    let iconName: string;
 
-                  switch (route.name) {
-                    case "Home":
-                      iconName = "home";
-                      break;
-                    case "Reports":
-                      iconName = "report";
-                      break;
-                    case "Settings":
-                      iconName = "cog";
-                      break;
-                    default:
-                      iconName = "circle";
-                  }
+                    switch (route.name) {
+                      case "Home":
+                        iconName = "home";
+                        break;
+                      case "Reports":
+                        iconName = "clipboard-pulse";
+                        break;
+                      case "Settings":
+                        iconName = "cog";
+                        break;
+                      default:
+                        iconName = "circle";
+                    }
 
                   return (
                     <MaterialCommunityIcons
