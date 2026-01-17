@@ -1,41 +1,40 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, SafeAreaView } from 'react-native';
+import InflationGraph from '../graphs/inflation_graph';
 
 export default function PneumaticsScreen() {
   const [position, setPosition] = useState('Supine');
-  const [controlMode, setControlMode] = useState('Auto'); // Toggles between 'Auto' and 'Manual'
+  const [controlMode, setControlMode] = useState('Auto');
   const [selectedMode, setSelectedMode] = useState('Alternating');
-  const [isRunning, setIsRunning] = useState(false); // For Manual Start/Stop state
+  const [isRunning, setIsRunning] = useState(false);
 
-  // --- BRAND COLORS ---
+  // --- REPORT THEME COLORS ---
   const COLORS = {
-    primaryBlue: '#10355F', // Deep Navy (Text/Foot)
-    accentOrange: '#F97316', // Orange (Swoosh Ring)
-    softBlue: '#D1E5F4',    // Light Blue (Dots/Background)
-    background: '#FFFFFF',
-    lightGrey: '#F3F4F6',
-    textGrey: '#6B7280',
-    // New Warning Colors for Manual Mode
-    warningBg: '#FFF7ED',   // Very light orange
+    primaryDarkBlue: "#0F3057",
+    accentOrange: "#F37021",
+    lightBlueBg: "#E6F0FF",
+    mediumBlueAccent: "#80BFFF",
+    iconBg: "#D0E6FF",
+    white: "#FFFFFF",
+    textGray: "#333333",
+    warningBg: '#FFF7ED',
     warningBorder: '#FDBA74',
     warningText: '#C2410C',
-    stopBtnGrey: '#9CA3AF',
   };
 
-  // --- COMPONENT: Position Selectors ---
   const renderPositionButton = (label: string) => {
     const isActive = position === label;
     return (
       <TouchableOpacity
         style={[
           styles.segmentButton,
-          isActive && { backgroundColor: COLORS.primaryBlue }
+          isActive && { backgroundColor: COLORS.primaryDarkBlue }
         ]}
         onPress={() => setPosition(label)}
       >
         <Text style={[
           styles.segmentText,
-          isActive && { color: 'white', fontWeight: 'bold' }
+          isActive ? { color: 'white', fontWeight: 'bold' } : { color: COLORS.primaryDarkBlue }
         ]}>
           {label}
         </Text>
@@ -43,7 +42,6 @@ export default function PneumaticsScreen() {
     );
   };
 
-  // --- COMPONENT: Auto Mode Cards ---
   const renderModeCard = (modeName: string, description: string) => {
     const isActive = selectedMode === modeName;
     return (
@@ -51,52 +49,51 @@ export default function PneumaticsScreen() {
         style={[
           styles.modeCard,
           isActive && {
-            backgroundColor: COLORS.primaryBlue,
-            borderColor: COLORS.primaryBlue
+            backgroundColor: COLORS.primaryDarkBlue,
+            borderColor: COLORS.primaryDarkBlue
           }
         ]}
         onPress={() => setSelectedMode(modeName)}
       >
         <View style={{flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center'}}>
-           <Text style={[styles.modeTitle, isActive && { color: 'white' }]}>
+           <Text style={[styles.modeTitle, isActive ? { color: 'white' } : { color: COLORS.primaryDarkBlue }]}>
              {modeName}
            </Text>
            {isActive && <View style={[styles.activeDot, { borderColor: COLORS.accentOrange }]} />}
         </View>
-        <Text style={[styles.modeDesc, isActive && { color: '#E0E0E0' }]}>
+        <Text style={[styles.modeDesc, isActive ? { color: '#E0E0E0' } : { color: COLORS.textGray }]}>
           {description}
         </Text>
       </TouchableOpacity>
     );
   };
 
-  // --- SECTION: Auto Mode UI ---
   const renderAutoUI = () => (
-    <View style={styles.sectionContainer}>
-      <Text style={[styles.sectionTitle, { color: COLORS.primaryBlue }]}>Select Mode</Text>
-      {renderModeCard('Alternating', 'Description...')}
-      {renderModeCard('Sleep', 'Description...')}
-      {renderModeCard('Firm', 'Description...')}
+    <View style={styles.cardContainer}>
+      <Text style={[styles.sectionTitle, { color: COLORS.primaryDarkBlue }]}>Select Mode</Text>
+      <View style={styles.divider} />
+      {renderModeCard('Alternating', 'Cycles pressure every 10 mins')}
+      {renderModeCard('Sleep', 'Reduced noise and gentle cycles')}
+      {renderModeCard('Firm', 'Maximum inflation for patient transfer')}
     </View>
   );
 
-  // --- SECTION: Manual Mode UI ---
   const renderManualUI = () => (
-    <View style={styles.sectionContainer}>
-      {/* Start / Stop Buttons Row */}
+    <View style={styles.cardContainer}>
+       <Text style={[styles.sectionTitle, { color: COLORS.primaryDarkBlue }]}>Manual Control</Text>
+       <View style={styles.divider} />
+
       <View style={styles.manualControlsRow}>
-        {/* Start Button */}
         <TouchableOpacity
-          style={[styles.manualBtn, { backgroundColor: COLORS.primaryBlue }]}
+          style={[styles.manualBtn, { backgroundColor: COLORS.primaryDarkBlue }]}
           onPress={() => setIsRunning(true)}
         >
           <Text style={styles.manualBtnIcon}>▶</Text>
           <Text style={styles.manualBtnText}>Start</Text>
         </TouchableOpacity>
 
-        {/* Stop Button */}
         <TouchableOpacity
-          style={[styles.manualBtn, { backgroundColor: COLORS.textGrey }]}
+          style={[styles.manualBtn, { backgroundColor: COLORS.textGray }]}
           onPress={() => setIsRunning(false)}
         >
           <Text style={styles.manualBtnIcon}>■</Text>
@@ -104,7 +101,6 @@ export default function PneumaticsScreen() {
         </TouchableOpacity>
       </View>
 
-      {/* Warning Banner */}
       <View style={[styles.warningBanner, { backgroundColor: COLORS.warningBg, borderColor: COLORS.warningBorder }]}>
         <Text style={[styles.warningText, { color: COLORS.warningText }]}>
           Manual mode requires careful monitoring. Switch to Auto for optimal pressure relief.
@@ -113,93 +109,117 @@ export default function PneumaticsScreen() {
     </View>
   );
 
+  // --- MAIN RENDER ---
   return (
-    <ScrollView style={[styles.container, { backgroundColor: COLORS.background }]}>
-      <Text style={[styles.header, { color: COLORS.primaryBlue }]}>Pneumatic System</Text>
-      <Text style={styles.subHeader}>Pressure relief control</Text>
+    // 1. Changed View/ScrollView to SafeAreaView as the root
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: COLORS.lightBlueBg }]}>
 
-      {/* --- Patient Position (Always Visible) --- */}
-      <View style={styles.sectionContainer}>
-        <Text style={[styles.sectionTitle, { color: COLORS.primaryBlue }]}>Patient Position</Text>
-        <View style={[styles.segmentContainer, { backgroundColor: COLORS.lightGrey }]}>
-          {renderPositionButton('Supine')}
-          {renderPositionButton('Seated')}
-          {renderPositionButton('Standing')}
+      {/* 2. ScrollView now lives INSIDE SafeAreaView */}
+      <ScrollView contentContainerStyle={styles.scrollContent}>
+
+        {/* 3. Title uses exact same styling/margin as Reports Screen */}
+        <Text style={[styles.header, { color: COLORS.primaryDarkBlue }]}>Pneumatic System</Text>
+
+        <InflationGraph />
+
+        <View style={styles.cardContainer}>
+          <Text style={[styles.sectionTitle, { color: COLORS.primaryDarkBlue }]}>Patient Position</Text>
+          <View style={styles.divider} />
+
+          <View style={[styles.segmentContainer, { backgroundColor: COLORS.iconBg }]}>
+            {renderPositionButton('Supine')}
+            {renderPositionButton('Seated')}
+            {renderPositionButton('Standing')}
+          </View>
         </View>
-      </View>
 
-      {/* --- Control Mode Toggle (Always Visible) --- */}
-      <View style={styles.sectionContainer}>
-        <Text style={[styles.sectionTitle, { color: COLORS.primaryBlue }]}>Control Mode</Text>
-        <View style={[styles.toggleContainer, { backgroundColor: COLORS.lightGrey }]}>
-          {['Auto', 'Manual'].map((mode) => (
-            <TouchableOpacity
-              key={mode}
-              style={[
-                styles.toggleBtn,
-                controlMode === mode && { backgroundColor: COLORS.primaryBlue }
-              ]}
-              onPress={() => setControlMode(mode)}
-            >
-              <Text style={[
-                styles.toggleText,
-                controlMode === mode && { color: 'white', fontWeight: 'bold' }
-              ]}>
-                {mode}
-              </Text>
-            </TouchableOpacity>
-          ))}
+        <View style={styles.cardContainer}>
+          <Text style={[styles.sectionTitle, { color: COLORS.primaryDarkBlue }]}>Control Mode</Text>
+          <View style={styles.divider} />
+
+          <View style={[styles.toggleContainer, { backgroundColor: COLORS.iconBg }]}>
+            {['Auto', 'Manual'].map((mode) => (
+              <TouchableOpacity
+                key={mode}
+                style={[
+                  styles.toggleBtn,
+                  controlMode === mode && { backgroundColor: COLORS.primaryDarkBlue }
+                ]}
+                onPress={() => setControlMode(mode)}
+              >
+                <Text style={[
+                  styles.toggleText,
+                  controlMode === mode ? { color: 'white', fontWeight: 'bold' } : { color: COLORS.primaryDarkBlue }
+                ]}>
+                  {mode}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
         </View>
-      </View>
 
-      {/* --- CONDITIONAL RENDER: Switches based on Control Mode --- */}
-      {controlMode === 'Auto' ? renderAutoUI() : renderManualUI()}
+        {controlMode === 'Auto' ? renderAutoUI() : renderManualUI()}
 
-      <View style={{ height: 100 }} />
-    </ScrollView>
+        <View style={{ height: 20 }} />
+      </ScrollView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  // New Safe Area Container
+  safeArea: {
     flex: 1,
-    padding: 20,
-    paddingTop: 60,
   },
+  // Padding moved to ScrollView content container
+  scrollContent: {
+    padding: 16,
+    paddingBottom: 40,
+  },
+  // Exact match to Reports Screen Title
   header: {
-    fontSize: 28,
-    fontWeight: 'bold',
+    fontSize: 22,
+    fontWeight: "700",
+    marginTop: 10,
+    marginBottom: 10, // Reduced from 16 to match Reports
+    textAlign: "center",
   },
-  subHeader: {
-    fontSize: 14,
-    color: '#6B7280',
-    marginBottom: 30,
-  },
-  sectionContainer: {
-    marginBottom: 25,
+  cardContainer: {
+    marginBottom: 16,
+    borderRadius: 12,
+    padding: 16,
+    backgroundColor: '#FFFFFF',
+    elevation: 2,
+    shadowColor: '#0F3057',
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 2 },
   },
   sectionTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    marginBottom: 10,
+    fontSize: 18,
+    fontWeight: '600',
   },
-  // Position Segment Styles
+  divider: {
+    marginVertical: 12,
+    backgroundColor: '#80BFFF',
+    height: 1,
+    opacity: 0.5,
+  },
   segmentContainer: {
     flexDirection: 'row',
-    borderRadius: 12,
+    borderRadius: 8,
     padding: 4,
   },
   segmentButton: {
     flex: 1,
-    paddingVertical: 12,
+    paddingVertical: 10,
     alignItems: 'center',
-    borderRadius: 8,
+    borderRadius: 6,
   },
   segmentText: {
-    color: '#6B7280',
+    fontSize: 14,
     fontWeight: '600',
   },
-  // Toggle Styles
   toggleContainer: {
     flexDirection: 'row',
     borderRadius: 25,
@@ -208,15 +228,14 @@ const styles = StyleSheet.create({
   },
   toggleBtn: {
     flex: 1,
-    paddingVertical: 12,
+    paddingVertical: 10,
     alignItems: 'center',
     borderRadius: 20,
   },
   toggleText: {
+    fontSize: 14,
     fontWeight: '600',
-    color: '#6B7280',
   },
-  // Auto Mode Card Styles
   modeCard: {
     borderWidth: 1,
     borderColor: '#E5E7EB',
@@ -228,21 +247,18 @@ const styles = StyleSheet.create({
   modeTitle: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: '#10355F',
     marginBottom: 4,
   },
   modeDesc: {
     fontSize: 12,
-    color: '#6B7280',
   },
   activeDot: {
-    width: 14,
-    height: 14,
-    borderRadius: 7,
+    width: 12,
+    height: 12,
+    borderRadius: 6,
     backgroundColor: 'white',
-    borderWidth: 3,
+    borderWidth: 2,
   },
-  // Manual Mode Styles
   manualControlsRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
