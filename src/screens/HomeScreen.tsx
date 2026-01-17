@@ -30,10 +30,13 @@ import LivePressureGraph from "../graphs/live_pressure_graph";
 import LivePositionGraph from "../graphs/live_position_graph";
 import PressureGraph from "../components/SimplePressureGraph";
 import {
-  BLEInstance,
-  requestBluetoothPermissions,
+  initBluetooth,
+  connect,
+  startStreaming,
+  sendCommand,
+  getConnected,
+  type BLCommand,
 } from "../services/bluetooth";
-import { Buffer } from "buffer";
 
 export default function HomeScreen() {
   // ✅ Connection states
@@ -53,21 +56,10 @@ export default function HomeScreen() {
   const [patients, setPatients] = useState<any[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [connected, setConnected] = React.useState<boolean | null>(null);
-  const [device, setDevice] = useState<any>();
-  const [scannedDevices, setScannedDevices] = useState<any[]>([]);
 
   const [pressure, setPressure] = useState<number | null>(null);
   const [pressureReadings, setPressureReadings] = useState<number[]>([]);
   const maxPoints = 50;
-  const [bluetoothState, setBluetoothState] = useState("Unknown");
-
-  const manager = BLEInstance.manager;
-
-  const SERVICE_UUID = "12345678-1234-5678-1234-56789abcdef0";
-  const PRESSURE_CHAR_UUID = "12345678-1234-5678-1234-56789abcdef1";
-  const COMMAND_CHAR_UUID = "12345678-1234-5678-1234-56789abcdef2";
-
-  const ESP32_NAME = "PneumaticSystem";
 
   // Check backend connection
   React.useEffect(() => {
@@ -78,110 +70,42 @@ export default function HomeScreen() {
     testConnection();
   }, []);
 
-  // BLE functions (to be refactored into bluetooth.ts)
-  const setupOnDeviceDisconnected = (deviceId: any) => {
-    manager.onDeviceDisconnected(deviceId, (error: any, device: any) => {
-      if (error) {
-        console.error("❌ Disconnection error:", error);
-      }
-      console.log("⚠️ Device disconnected:", device?.id);
-      setBluetoothConnected(false);
-
-      if (device) {
-        console.log("🔁 Attempting to reconnect...");
-        device.connect().then(() => {
-          setBluetoothConnected(true);
-          console.log("✅ Reconnected successfully");
-          startMonitoring(device);
-        });
-      }
-    });
-  };
-
-  const startMonitoring = (connectedDevice: any) => {
-    connectedDevice.monitorCharacteristicForService(
-      SERVICE_UUID,
-      PRESSURE_CHAR_UUID,
-      (error: any, characteristic: any) => {
-        if (error) {
-          console.error("❌ Pressure monitor error:", error);
-          return;
-        }
-
-        if (characteristic?.value) {
-          try {
-            const decoded = Buffer.from(
-              characteristic.value,
-              "base64"
-            ).toString("utf8");
-            const reading = parseFloat(decoded.trim());
-            if (!isNaN(reading)) {
-              setPressure(reading);
-              setPressureReadings((prev) => {
-                const updated = [...prev, reading];
-                return updated.length > maxPoints
-                  ? updated.slice(updated.length - maxPoints)
-                  : updated;
-              });
-            }
-          } catch (e) {
-            console.error("Failed to decode pressure data:", e);
-          }
-        }
-      }
-    );
-  };
-
-  const scanAndConnect = () => {
-    console.log("Scanning for bluetooth device");
-    manager.startDeviceScan(null, null, async (error: any, device: any) => {
-      if (error) {
-        manager.stopDeviceScan();
-        return;
-      }
-      if (device?.name === ESP32_NAME) {
-        console.log("Found device: ", device.name);
-        setBluetoothConnected(true);
-        manager.stopDeviceScan();
-
-        try {
-          const connectedDevice = await device.connect();
-          setDevice(connectedDevice);
-          await connectedDevice.discoverAllServicesAndCharacteristics();
-
-          setupOnDeviceDisconnected(connectedDevice.id);
-          const characteristic =
-            await connectedDevice.readCharacteristicForService(
-              SERVICE_UUID,
-              PRESSURE_CHAR_UUID
-            );
-          console.log("Characteristic value:", characteristic.value);
-          startMonitoring(connectedDevice);
-        } catch (err) {
-          console.error("Connection error:", err);
-          setBluetoothConnected(false);
-        }
-      } else {
-        //   setBluetoothConnected(false);
-      }
-    });
-  };
-
-  const sendCommand = async (cmd: "INFLATE" | "DEFLATE") => {
-    if (!device) {
-      console.warn("No device connected");
-      return;
-    }
-
+  // Handle BLE connection
+  const handleConnect = async () => {
     try {
-      await device.writeCharacteristicWithResponseForService(
-        SERVICE_UUID,
-        COMMAND_CHAR_UUID,
-        Buffer.from(cmd, "utf8").toString("base64")
-      );
-      console.log(`[SENT] Command sent: ${cmd}`);
+      await connect();
+      setBluetoothConnected(true);
+
+      // Start streaming sensor data
+      await startStreaming((reading: number) => {
+        setPressure(reading);
+        setPressureReadings((prev) => {
+          const updated = [...prev, reading];
+          return updated.length > maxPoints
+            ? updated.slice(updated.length - maxPoints)
+            : updated;
+        });
+      });
     } catch (err) {
-      console.error("❌ Failed to send command:", err);
+      console.error("Failed to connect:", err);
+      setBluetoothConnected(false);
+      Alert.alert("Connection Error", "Failed to connect to device");
+    }
+  };
+
+  // Handle sending commands
+  const handleSendCommand = async (section: number, inflate: boolean, deflate: boolean, pump: boolean = false) => {
+    try {
+      const cmd: BLCommand = {
+        section,
+        inflate,
+        deflate,
+        pump,
+      };
+      await sendCommand(cmd);
+    } catch (err) {
+      console.error("Failed to send command:", err);
+      Alert.alert("Command Error", "Failed to send command to device");
     }
   };
 
@@ -288,44 +212,19 @@ export default function HomeScreen() {
     };
     runAllTests();
 
-    const initBluetooth = async () => {
-      console.log("init bluetooth");
-      const granted = await requestBluetoothPermissions();
-      if (!granted) {
-        console.warn("Bluetooth permission not granted");
-        return;
-      } else {
-        console.log("Bluetooth granted");
-      }
-
-      // const state = await manager.state(); // get current state
-      // console.log("BT STATE:", state);
-      // if (state !== "PoweredOn") {
-      //   Alert.alert(
-      //     "Bluetooth is off",
-      //     "Please turn on Bluetooth to connect to devices",
-      //     [{ text: "OK" }]
-      //   );
-      //   return;
-      // }
-      const subscription = manager.onStateChange((state: any) => {
-        console.log("init bluetooth111");
-        console.log(state);
-        setBluetoothState(state);
-        if (state === "PoweredOn") {
-          scanAndConnect();
-        } else {
-          console.log("Bluetooth not on");
-          Alert.alert(
-            "Bluetooth is off",
-            "Please turn on Bluetooth to connect to devices",
-            [{ text: "OK" }]
-          );
+    // Initialize Bluetooth
+    const setupBluetooth = async () => {
+      try {
+        const initialized = await initBluetooth();
+        if (initialized) {
+          // Update connection status
+          setBluetoothConnected(getConnected());
         }
-      }, true);
-      return () => subscription.remove();
+      } catch (err) {
+        console.error("Failed to initialize Bluetooth:", err);
+      }
     };
-    initBluetooth();
+    setupBluetooth();
   }, []);
 
   // --- Render UI ---
@@ -379,16 +278,13 @@ export default function HomeScreen() {
             >
               <TouchableOpacity
                 style={{
-                  backgroundColor:
-                    bluetoothState === "PoweredOn" ? "green" : "red",
+                  backgroundColor: bluetoothConnected ? "green" : "red",
                   padding: 12,
                   borderRadius: 8,
                 }}
               >
                 <Text style={{ color: "white" }}>
-                  {bluetoothState === "PoweredOn"
-                    ? "Bluetooth ON"
-                    : "Bluetooth OFF"}
+                  {bluetoothConnected ? "Bluetooth Ready" : "Bluetooth Off"}
                 </Text>
               </TouchableOpacity>
               <TouchableOpacity
@@ -410,10 +306,10 @@ export default function HomeScreen() {
                   padding: 12,
                   borderRadius: 8,
                 }}
-                onPress={() => scanAndConnect()}
+                onPress={handleConnect}
                 disabled={!!bluetoothConnected}
               >
-                <Text style={{ color: "white" }}>Connect to ESP32</Text>
+                <Text style={{ color: "white" }}>Connect to ESP32-PneuRelief</Text>
               </TouchableOpacity>
             </View>
             <Text
@@ -435,17 +331,19 @@ export default function HomeScreen() {
             >
               <Button
                 mode="contained"
-                onPress={() => sendCommand("INFLATE")}
+                onPress={() => handleSendCommand(0, true, false)}
                 style={{ backgroundColor: "#3498db" }}
+                disabled={!bluetoothConnected}
               >
-                Inflate
+                Inflate Section 0
               </Button>
               <Button
                 mode="contained"
-                onPress={() => sendCommand("DEFLATE")}
+                onPress={() => handleSendCommand(0, false, true)}
                 style={{ backgroundColor: "#e74c3c" }}
+                disabled={!bluetoothConnected}
               >
-                Deflate
+                Deflate Section 0
               </Button>
             </View>
             
