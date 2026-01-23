@@ -5,7 +5,7 @@ const path = require('path');
 /** @type {import('expo/metro-config').MetroConfig} */
 const config = getDefaultConfig(__dirname);
 
-// Add support for 3D model files
+// Add support for 3D model files and WASM
 config.resolver.assetExts.push(
   // 3D Model formats
   'glb',
@@ -15,7 +15,9 @@ config.resolver.assetExts.push(
   // Binary and texture formats
   'bin',
   'hdr',
-  'fbx'
+  'fbx',
+  // WASM for SQLite web support
+  'wasm'
 );
 
 // Ensure proper handling of 3D model files in Expo Go
