@@ -1,84 +1,230 @@
 import * as React from "react";
-import { ScrollView, StyleSheet, View, ImageBackground } from "react-native";
-import { Text, Card, Avatar, Switch, Menu, Button, useTheme } from "react-native-paper";
+import { ScrollView, StyleSheet } from "react-native";
+import {
+  Text,
+  Card,
+  Switch,
+  Menu,
+  Button,
+  useTheme,
+  Divider,
+} from "react-native-paper";
 import Slider from "@react-native-community/slider";
-import { checkConnection } from "../../services/api";
 
-const HomeScreen: React.FC = () => {
+const CalibrationsScreen: React.FC = () => {
   const theme = useTheme();
 
-  // States
-  const [sliderValue, setSliderValue] = React.useState(50);
-  const [toggleOn, setToggleOn] = React.useState(false);
-  const [menuVisible, setMenuVisible] = React.useState(false);
-  const [selectedOption, setSelectedOption] = React.useState("Option 1");
-  
+  // ---------------------------
+  // Pressure sensor calibration
+  // ---------------------------
+  const [pressureEnabled, setPressureEnabled] = React.useState(false);
+  const [pressureValue, setPressureValue] = React.useState(50);
+  const [pressureMenuVisible, setPressureMenuVisible] = React.useState(false);
+  const [pressurePreset, setPressurePreset] = React.useState("Default");
+
+  // ---------------------------
+  // Air pressure sensor calibration
+  // ---------------------------
+  const [airEnabled, setAirEnabled] = React.useState(false);
+  const [airValue, setAirValue] = React.useState(50);
+  const [airMenuVisible, setAirMenuVisible] = React.useState(false);
+  const [airPreset, setAirPreset] = React.useState("Default");
+
+  // Dummy actions (replace later)
+  const runPressureCalibration = () => {
+    // TODO: hook to device/backend
+    console.log("Run Pressure Sensor Calibration");
+  };
+
+  const savePressureCalibration = () => {
+    // TODO: persist to backend/supabase
+    console.log("Save Pressure Sensor Calibration", {
+      enabled: pressureEnabled,
+      value: pressureValue,
+      preset: pressurePreset,
+    });
+  };
+
+  const runAirCalibration = () => {
+    // TODO: hook to device/backend
+    console.log("Run Air Pressure Sensor Calibration");
+  };
+
+  const saveAirCalibration = () => {
+    // TODO: persist to backend/supabase
+    console.log("Save Air Pressure Sensor Calibration", {
+      enabled: airEnabled,
+      value: airValue,
+      preset: airPreset,
+    });
+  };
+
+  const PRESETS = ["Default", "Preset 1", "Preset 2", "Preset 3"];
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={{ padding: 16 }}>
-      {/* Welcome Section */}
-      
-      {/* Device Toggle */}
+      {/* ---------------------------
+          Pressure Sensor Calibration
+         --------------------------- */}
       <Card style={styles.sectionCard} elevation={2}>
-        <Card.Title title="Your Device" />
-        <Card.Content style={styles.toggleRow}>
-          <Text variant="titleMedium" style={{ fontWeight: "bold" }}>
-            Enable Feature
-          </Text>
-          <Switch value={toggleOn} onValueChange={setToggleOn} />
-        </Card.Content>
-      </Card>
-
-      {/* Slider & Menu Section */}
-      <Card style={styles.sectionCard} elevation={2}>
-        <Card.Title title="Calibration" />
+        <Card.Title title="Pressure Sensor Calibration" />
         <Card.Content>
+          <Text variant="titleMedium" style={{ fontWeight: "bold" }}>
+            Enable Calibration
+          </Text>
+
+          <Divider style={{ marginVertical: 10 }} />
+
+          <Text style={{ marginBottom: 6 }}>Calibration Mode</Text>
+          <Switch value={pressureEnabled} onValueChange={setPressureEnabled} />
+
+          <Divider style={{ marginVertical: 12 }} />
+
           <Text variant="titleMedium" style={{ fontWeight: "bold" }}>
             Adjust Value
           </Text>
           <Slider
-            value={sliderValue}
-            onValueChange={setSliderValue}
+            value={pressureValue}
+            onValueChange={setPressureValue}
             minimumValue={0}
             maximumValue={100}
             step={1}
             style={{ marginVertical: 12 }}
             minimumTrackTintColor={theme.colors.primary}
             maximumTrackTintColor="#ccc"
+            disabled={!pressureEnabled}
           />
-          <Text>Value: {sliderValue}</Text>
+          <Text>Value: {pressureValue}</Text>
 
           <Menu
-            visible={menuVisible}
-            onDismiss={() => setMenuVisible(false)}
+            visible={pressureMenuVisible}
+            onDismiss={() => setPressureMenuVisible(false)}
             anchor={
               <Button
                 mode="outlined"
-                onPress={() => setMenuVisible(true)}
+                onPress={() => setPressureMenuVisible(true)}
                 style={{ width: "100%", marginTop: 12 }}
+                disabled={!pressureEnabled}
               >
-                {selectedOption}
+                {pressurePreset}
               </Button>
             }
           >
-            {["Option 1", "Option 2", "Option 3"].map((option) => (
+            {PRESETS.map((option) => (
               <Menu.Item
                 key={option}
                 onPress={() => {
-                  setSelectedOption(option);
-                  setMenuVisible(false);
+                  setPressurePreset(option);
+                  setPressureMenuVisible(false);
                 }}
                 title={option}
               />
             ))}
           </Menu>
+
+          <Button
+            mode="contained"
+            style={{ marginTop: 14 }}
+            onPress={runPressureCalibration}
+            disabled={!pressureEnabled}
+          >
+            Run Calibration
+          </Button>
+
+          <Button
+            mode="outlined"
+            style={{ marginTop: 10 }}
+            onPress={savePressureCalibration}
+            disabled={!pressureEnabled}
+          >
+            Save
+          </Button>
+        </Card.Content>
+      </Card>
+
+      {/* ---------------------------
+          Air Pressure Sensor Calibration
+         --------------------------- */}
+      <Card style={styles.sectionCard} elevation={2}>
+        <Card.Title title="Air Pressure Sensor Calibration" />
+        <Card.Content>
+          <Text variant="titleMedium" style={{ fontWeight: "bold" }}>
+            Enable Calibration
+          </Text>
+
+          <Divider style={{ marginVertical: 10 }} />
+
+          <Text style={{ marginBottom: 6 }}>Calibration Mode</Text>
+          <Switch value={airEnabled} onValueChange={setAirEnabled} />
+
+          <Divider style={{ marginVertical: 12 }} />
+
+          <Text variant="titleMedium" style={{ fontWeight: "bold" }}>
+            Adjust Value
+          </Text>
+          <Slider
+            value={airValue}
+            onValueChange={setAirValue}
+            minimumValue={0}
+            maximumValue={100}
+            step={1}
+            style={{ marginVertical: 12 }}
+            minimumTrackTintColor={theme.colors.primary}
+            maximumTrackTintColor="#ccc"
+            disabled={!airEnabled}
+          />
+          <Text>Value: {airValue}</Text>
+
+          <Menu
+            visible={airMenuVisible}
+            onDismiss={() => setAirMenuVisible(false)}
+            anchor={
+              <Button
+                mode="outlined"
+                onPress={() => setAirMenuVisible(true)}
+                style={{ width: "100%", marginTop: 12 }}
+                disabled={!airEnabled}
+              >
+                {airPreset}
+              </Button>
+            }
+          >
+            {PRESETS.map((option) => (
+              <Menu.Item
+                key={option}
+                onPress={() => {
+                  setAirPreset(option);
+                  setAirMenuVisible(false);
+                }}
+                title={option}
+              />
+            ))}
+          </Menu>
+
+          <Button
+            mode="contained"
+            style={{ marginTop: 14 }}
+            onPress={runAirCalibration}
+            disabled={!airEnabled}
+          >
+            Run Calibration
+          </Button>
+
+          <Button
+            mode="outlined"
+            style={{ marginTop: 10 }}
+            onPress={saveAirCalibration}
+            disabled={!airEnabled}
+          >
+            Save
+          </Button>
         </Card.Content>
       </Card>
     </ScrollView>
   );
 };
 
-export default HomeScreen;
+export default CalibrationsScreen;
 
 const styles = StyleSheet.create({
   container: {
@@ -88,10 +234,5 @@ const styles = StyleSheet.create({
   sectionCard: {
     marginBottom: 16,
   },
-  toggleRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginTop: 12,
-  },
 });
+ 
