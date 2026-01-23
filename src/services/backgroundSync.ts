@@ -1,4 +1,4 @@
-import { db } from './database';
+import { getDatabase } from './database';
 import { uploadSensorData, SensorReading } from './api';
 
 // Configuration
@@ -13,6 +13,7 @@ export interface SyncResult {
 // Optimized Batch Insert for SQLite
 export async function addReadingsToLocalQueue(newReadings: SensorReading[]): Promise<void> {
   try {
+    const db = getDatabase();
     await db.withTransactionAsync(async () => {
       for (const r of newReadings) {
         await db.runAsync(
@@ -34,6 +35,8 @@ export async function addReadingsToLocalQueue(newReadings: SensorReading[]): Pro
 export async function syncLocalDataToBackend(userId: string): Promise<SyncResult> {
   try {
     console.log('Starting background sync...');
+
+    const db = getDatabase();
 
     // 1. Fetch unsynced rows from SQLite
     // 'rows' is defined here to fix the "Cannot find name 'rows'" error
@@ -94,6 +97,7 @@ export function setupBackgroundSync(userId: string, intervalMs: number = SYNC_IN
 //Clear all local data
 export async function clearLocalData(): Promise<void> {
   try {
+    const db = getDatabase();
     await db.runAsync('DELETE FROM raw_packets');
     console.log('SQLite: Cleared all local sensor data');
   } catch (error) {

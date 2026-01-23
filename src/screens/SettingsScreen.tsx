@@ -12,7 +12,7 @@ import { NativeStackScreenProps } from "@react-navigation/native-stack";
 
 import { syncLocalDataToBackend, clearLocalData, startDataSimulation, stopDataSimulation } from "../services/backgroundSync";
 import { supabase } from "../services/supabase_client";
-import { db } from "../services/database";
+import { getDatabase } from "../services/database";
 
 type ProfilePageProps = NativeStackScreenProps<any, any>;
 
@@ -24,18 +24,19 @@ const SettingsScreen: React.FC<ProfilePageProps> = ({ navigation }) => {
 
   const peekDatabase = async () => {
     try {
+      const db = getDatabase();
       // Fetch the 5 most recent entries
       const rows = await db.getAllAsync<any>(
         'SELECT * FROM raw_packets ORDER BY id DESC LIMIT 5'
       );
-      
+
       if (rows.length === 0) {
         Alert.alert("Database Empty", "Start the simulation first!");
         return;
       }
 
       // Format the rows into a readable string
-      const displayData = rows.map((r: any) => 
+      const displayData = rows.map((r: any) =>
         `ID: ${r.id} | ${r.patch_id} | ${r.pressure.toFixed(1)}`
       ).join('\n');
 
@@ -67,10 +68,11 @@ const SettingsScreen: React.FC<ProfilePageProps> = ({ navigation }) => {
 
     try {
       const result = await syncLocalDataToBackend(session.user.id);
-      
+
       // Get remaining count from SQLite to verify the purge
+      const db = getDatabase();
       const rowRes = await db.getFirstAsync<{ count: number }>('SELECT COUNT(*) as count FROM raw_packets');
-      
+
       Alert.alert(
         "Sync Result",
         `Uploaded: ${result.readingsCount} readings\nDatabase now has: ${rowRes?.count || 0} rows`
