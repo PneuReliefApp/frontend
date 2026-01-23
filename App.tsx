@@ -16,12 +16,14 @@ import ReportsScreen from "./src/screens/ReportsScreen";
 import SettingsScreen from "./src/screens/SettingsScreen";
 import NotifsScreen from "./src/screens/Settings/NotifsScreen";
 import AuthScreen from "./src/screens/AuthScreen";
+import SignupScreen from "./src/screens/SignupScreen";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import CalibrationsScreen from "./src/screens/Settings/CalibrationsScreen";
 import PneumaticsScreen from './src/screens/PneumaticsScreen';
 
 const Tab = createBottomTabNavigator();
 const SettingsStack = createNativeStackNavigator();
+const AuthStack = createNativeStackNavigator();
 
 function SettingsStackNavigator() {
   return (
@@ -37,6 +39,15 @@ function SettingsStackNavigator() {
         component={CalibrationsScreen}
       />
     </SettingsStack.Navigator>
+  );
+}
+
+function AuthStackNavigator() {
+  return (
+    <AuthStack.Navigator screenOptions={{ headerShown: false }}>
+      <AuthStack.Screen name="Auth" component={AuthScreen} />
+      <AuthStack.Screen name="Signup" component={SignupScreen} />
+    </AuthStack.Navigator>
   );
 }
 
@@ -80,7 +91,7 @@ export default function App() {
         <SafeAreaProvider>
           <NavigationContainer>
             {!session ? (
-              <AuthScreen />
+              <AuthStackNavigator />
             ) : (
               <Tab.Navigator
                 initialRouteName="Home"

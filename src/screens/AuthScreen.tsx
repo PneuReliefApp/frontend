@@ -15,27 +15,12 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { supabase } from "../services/supabase_client";
 import { COLORS } from "../constants/colors";
 
-export default function AuthScreen() {
+export default function AuthScreen({ navigation }: any) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [message, setMessage] = useState("");
   const [rememberMe, setRememberMe] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-
-  const signUp = async () => {
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
-    });
-
-    if (error) {
-      setMessage(`Signup Error: ${error.message}`);
-    } else if (data.user && data.session === null) {
-      setMessage("Success! Please check your email for a confirmation link.");
-    } else {
-      setMessage("Account created and logged in!");
-    }
-  };
 
   const signIn = async () => {
     const { error } = await supabase.auth.signInWithPassword({
@@ -178,7 +163,7 @@ export default function AuthScreen() {
             {/* Sign Up Link */}
             <View style={styles.signUpContainer}>
               <Text style={styles.signUpText}>Don't have an account? </Text>
-              <TouchableOpacity onPress={signUp}>
+              <TouchableOpacity onPress={() => navigation.navigate('Signup')}>
                 <Text style={styles.signUpLink}>Sign up</Text>
               </TouchableOpacity>
             </View>
