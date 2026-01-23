@@ -3,7 +3,7 @@ import { View, TextInput, Button, Text, StyleSheet, TouchableOpacity, ActivityIn
 import { supabase } from "../services/supabase_client";
 import * as Linking from 'expo-linking';
 
-export default function AuthScreen() {
+export default function AuthScreen({ navigation }: any) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [message, setMessage] = useState("");
@@ -95,9 +95,13 @@ export default function AuthScreen() {
             <Text style={styles.googleButtonText}>Sign In with Google</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity onPress={handleForgotPassword} style={styles.forgotBtn}>
+          <TouchableOpacity 
+            onPress={() => navigation.navigate("ForgotPassword")}
+            style={styles.forgotBtn}>
+              
             <Text style={styles.linkText}>Forgot Password?</Text>
           </TouchableOpacity>
+
         </View>
       )}
 
