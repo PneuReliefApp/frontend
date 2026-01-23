@@ -119,6 +119,7 @@ export default function App() {
               <Tab.Screen name="Settings" component={SettingsStackNavigator} />
               <Tab.Screen name="Auth" component={AuthScreen} />
             </Tab.Navigator>
+          )}
           </NavigationContainer>
         </SafeAreaProvider>
       </PaperProvider>
