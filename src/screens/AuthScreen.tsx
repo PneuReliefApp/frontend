@@ -13,6 +13,7 @@ import {
 import { LinearGradient } from "expo-linear-gradient";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { supabase } from "../services/supabase_client";
+import { COLORS } from "../constants/colors";
 
 export default function AuthScreen() {
   const [email, setEmail] = useState("");
@@ -55,7 +56,7 @@ export default function AuthScreen() {
       style={styles.keyboardView}
     >
       <LinearGradient
-        colors={["#E8E3F5", "#F3F1FA", "#FFFFFF"]}
+        colors={[COLORS.lightBlue, COLORS.softBlue, COLORS.white]}
         style={styles.gradient}
       >
         <ScrollView
@@ -112,7 +113,7 @@ export default function AuthScreen() {
                 style={styles.input}
                 autoCapitalize="none"
                 keyboardType="email-address"
-                placeholderTextColor="#9CA3AF"
+                placeholderTextColor={COLORS.lightGray}
               />
             </View>
 
@@ -205,7 +206,7 @@ const styles = StyleSheet.create({
     paddingVertical: 40,
   },
   card: {
-    backgroundColor: "#FFFFFF",
+    backgroundColor: COLORS.white,
     borderRadius: 24,
     padding: 32,
     width: "90%",
@@ -237,19 +238,19 @@ const styles = StyleSheet.create({
   brandText: {
     fontSize: 28,
     fontWeight: "700",
-    color: "#10355F",
+    color: COLORS.primaryBlue,
     letterSpacing: 0.5,
     marginLeft: -30,
   },
   welcomeText: {
     fontSize: 28,
     fontWeight: "700",
-    color: "#111827",
+    color: COLORS.darkText,
     marginBottom: 8,
   },
   subtitleText: {
     fontSize: 14,
-    color: "#6B7280",
+    color: COLORS.grayText,
   },
 
   // Social Buttons
@@ -263,11 +264,11 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: "#F9FAFB",
+    backgroundColor: COLORS.backgroundGray,
     justifyContent: "center",
     alignItems: "center",
     borderWidth: 1,
-    borderColor: "#E5E7EB",
+    borderColor: COLORS.borderGray,
   },
 
   // Divider
@@ -279,12 +280,12 @@ const styles = StyleSheet.create({
   dividerLine: {
     flex: 1,
     height: 1,
-    backgroundColor: "#E5E7EB",
+    backgroundColor: COLORS.borderGray,
   },
   dividerText: {
     marginHorizontal: 16,
     fontSize: 14,
-    color: "#9CA3AF",
+    color: COLORS.lightGray,
     fontWeight: "500",
   },
 
@@ -295,31 +296,31 @@ const styles = StyleSheet.create({
   inputLabel: {
     fontSize: 14,
     fontWeight: "500",
-    color: "#374151",
+    color: COLORS.grayText,
     marginBottom: 8,
   },
   input: {
-    backgroundColor: "#F9FAFB",
+    backgroundColor: COLORS.backgroundGray,
     borderWidth: 1,
-    borderColor: "#E5E7EB",
+    borderColor: COLORS.borderGray,
     borderRadius: 12,
     padding: 16,
     fontSize: 16,
-    color: "#111827",
+    color: COLORS.darkText,
   },
   passwordContainer: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#F9FAFB",
+    backgroundColor: COLORS.backgroundGray,
     borderWidth: 1,
-    borderColor: "#E5E7EB",
+    borderColor: COLORS.borderGray,
     borderRadius: 12,
   },
   passwordInput: {
     flex: 1,
     padding: 16,
     fontSize: 16,
-    color: "#111827",
+    color: COLORS.darkText,
   },
   eyeIcon: {
     paddingHorizontal: 16,
@@ -341,35 +342,35 @@ const styles = StyleSheet.create({
     height: 20,
     borderRadius: 4,
     borderWidth: 2,
-    borderColor: "#D1D5DB",
+    borderColor: COLORS.borderGray,
     marginRight: 8,
     justifyContent: "center",
     alignItems: "center",
   },
   checkboxChecked: {
-    backgroundColor: "#4F46E5",
-    borderColor: "#4F46E5",
+    backgroundColor: COLORS.accentPurple,
+    borderColor: COLORS.accentPurple,
   },
   rememberMeText: {
     fontSize: 14,
-    color: "#374151",
+    color: COLORS.grayText,
   },
   forgotPasswordText: {
     fontSize: 14,
-    color: "#4F46E5",
+    color: COLORS.accentPurple,
     fontWeight: "500",
   },
 
   // Sign In Button
   signInButton: {
-    backgroundColor: "#111827",
+    backgroundColor: COLORS.darkText,
     borderRadius: 12,
     padding: 16,
     alignItems: "center",
     marginBottom: 20,
   },
   signInButtonText: {
-    color: "#FFFFFF",
+    color: COLORS.white,
     fontSize: 16,
     fontWeight: "600",
   },
@@ -382,11 +383,11 @@ const styles = StyleSheet.create({
   },
   signUpText: {
     fontSize: 14,
-    color: "#6B7280",
+    color: COLORS.grayText,
   },
   signUpLink: {
     fontSize: 14,
-    color: "#4F46E5",
+    color: COLORS.accentPurple,
     fontWeight: "600",
   },
 
@@ -395,6 +396,6 @@ const styles = StyleSheet.create({
     marginTop: 16,
     textAlign: "center",
     fontSize: 14,
-    color: "#EF4444",
+    color: COLORS.errorRed,
   },
 });
