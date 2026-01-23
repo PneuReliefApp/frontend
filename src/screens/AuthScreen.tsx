@@ -9,11 +9,15 @@ import {
   ScrollView,
   KeyboardAvoidingView,
   Platform,
+  ActivityIndicator,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { supabase } from "../services/supabase_client";
 import { COLORS } from "../constants/colors";
+import * as WebBrowser from "expo-web-browser";
+
+WebBrowser.maybeCompleteAuthSession();
 
 export default function AuthScreen({ navigation }: any) {
   const [email, setEmail] = useState("");
@@ -21,8 +25,12 @@ export default function AuthScreen({ navigation }: any) {
   const [message, setMessage] = useState("");
   const [rememberMe, setRememberMe] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [socialLoading, setSocialLoading] = useState<string | null>(null);
 
   const signIn = async () => {
+    setIsLoading(true);
+    setMessage("");
     const { error } = await supabase.auth.signInWithPassword({
       email,
       password,
@@ -32,6 +40,64 @@ export default function AuthScreen({ navigation }: any) {
       setMessage(`Login Error: ${error.message}`);
     } else {
       setMessage("Logged in Successfully!");
+    }
+    setIsLoading(false);
+  };
+
+  const handleGoogleSignIn = async () => {
+    try {
+      setSocialLoading("google");
+      setMessage("");
+
+      // Use the app's custom scheme for redirect
+      const redirectUrl = "pneurelief://auth/callback";
+
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: {
+          redirectTo: redirectUrl,
+          skipBrowserRedirect: false,
+        },
+      });
+
+      if (error) {
+        setMessage(`Google Sign-In Error: ${error.message}`);
+        setSocialLoading(null);
+        return;
+      }
+
+      if (data?.url) {
+        const result = await WebBrowser.openAuthSessionAsync(
+          data.url,
+          redirectUrl
+        );
+
+        if (result.type === "success") {
+          const url = result.url;
+          const params = new URLSearchParams(url.split("#")[1] || url.split("?")[1]);
+          const accessToken = params.get("access_token");
+          const refreshToken = params.get("refresh_token");
+
+          if (accessToken && refreshToken) {
+            const { error: sessionError } = await supabase.auth.setSession({
+              access_token: accessToken,
+              refresh_token: refreshToken,
+            });
+
+            if (sessionError) {
+              setMessage(`Session Error: ${sessionError.message}`);
+            } else {
+              setMessage("Logged in with Google Successfully!");
+            }
+          }
+        } else if (result.type === "cancel") {
+          setMessage("Google Sign-In cancelled");
+        }
+      }
+    } catch (error: any) {
+      setMessage(`Error: ${error.message}`);
+    } finally {
+      setSocialLoading(null);
     }
   };
 
@@ -68,15 +134,29 @@ export default function AuthScreen({ navigation }: any) {
 
             {/* Social Login Buttons */}
             <View style={styles.socialButtonsContainer}>
-              <TouchableOpacity style={styles.socialButton}>
-                <MaterialCommunityIcons name="google" size={24} color="#DB4437" />
+              <TouchableOpacity
+                style={styles.socialButton}
+                onPress={handleGoogleSignIn}
+                disabled={socialLoading !== null}
+              >
+                {socialLoading === "google" ? (
+                  <ActivityIndicator size="small" color="#DB4437" />
+                ) : (
+                  <MaterialCommunityIcons name="google" size={24} color="#DB4437" />
+                )}
               </TouchableOpacity>
 
-              <TouchableOpacity style={styles.socialButton}>
+              <TouchableOpacity
+                style={[styles.socialButton, socialLoading !== null && styles.socialButtonDisabled]}
+                disabled={true}
+              >
                 <MaterialCommunityIcons name="apple" size={24} color="#000000" />
               </TouchableOpacity>
 
-              <TouchableOpacity style={styles.socialButton}>
+              <TouchableOpacity
+                style={[styles.socialButton, socialLoading !== null && styles.socialButtonDisabled]}
+                disabled={true}
+              >
                 <MaterialCommunityIcons name="twitter" size={24} color="#1DA1F2" />
               </TouchableOpacity>
             </View>
@@ -156,8 +236,16 @@ export default function AuthScreen({ navigation }: any) {
             </View>
 
             {/* Sign In Button */}
-            <TouchableOpacity style={styles.signInButton} onPress={signIn}>
-              <Text style={styles.signInButtonText}>Sign in</Text>
+            <TouchableOpacity
+              style={styles.signInButton}
+              onPress={signIn}
+              disabled={isLoading || socialLoading !== null}
+            >
+              {isLoading ? (
+                <ActivityIndicator size="small" color={COLORS.white} />
+              ) : (
+                <Text style={styles.signInButtonText}>Sign in</Text>
+              )}
             </TouchableOpacity>
 
             {/* Sign Up Link */}
@@ -254,6 +342,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
     borderWidth: 1,
     borderColor: COLORS.borderGray,
+  },
+  socialButtonDisabled: {
+    opacity: 0.5,
   },
 
   // Divider
