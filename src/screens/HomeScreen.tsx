@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
+import { useFocusEffect } from "@react-navigation/native";
 import {
   View,
   StyleSheet,
@@ -59,57 +60,67 @@ export default function HomeScreen() {
 
   const [avatarUrl, setAvatarUrl] = useState<string>(MALE_AVATAR);
 
-  // Load name + avatar; prompt if missing
-  useEffect(() => {
-    const loadUserPrefs = async () => {
-      try {
-        const { data, error } = await supabase.auth.getUser();
-        if (error) throw error;
+  // ✅ Load name + avatar; safe string handling + reusable
+  const loadUserPrefs = useCallback(async () => {
+    try {
+      const { data, error } = await supabase.auth.getUser();
+      if (error) throw error;
 
-        const user = data?.user;
+      const user = data?.user;
 
-        if (!user) {
-          setDisplayName("there");
-          setShowNameDialog(false);
-          setAvatarUrl(resolveAvatarUrl("male"));
-          return;
-        }
-
-        // ---- name ----
-        const metaName =
-          user.user_metadata?.full_name ||
-          user.user_metadata?.name ||
-          user.user_metadata?.display_name;
-
-        const emailPrefix = user.email ? user.email.split("@")[0] : "there";
-
-        if (metaName && String(metaName).trim().length > 0) {
-          setDisplayName(String(metaName).trim());
-          setShowNameDialog(false);
-        } else {
-          // fallback + show dialog to set name once
-          setDisplayName(emailPrefix);
-          setNameInput("");
-          setShowNameDialog(true);
-        }
-
-        // ---- avatar ---- (load-only)
-        const metaGender = (user.user_metadata?.avatar_gender as
-          | "male"
-          | "female"
-          | undefined) ?? "male";
-
-        setAvatarUrl(resolveAvatarUrl(metaGender));
-      } catch (e) {
-        console.error("Failed to load user prefs:", e);
+      if (!user) {
         setDisplayName("there");
         setShowNameDialog(false);
         setAvatarUrl(resolveAvatarUrl("male"));
+        return;
       }
-    };
 
-    loadUserPrefs();
+      // ---- name (SAFE) ----
+      const rawMetaName =
+        user.user_metadata?.full_name ??
+        user.user_metadata?.name ??
+        user.user_metadata?.display_name;
+
+      const metaName =
+        typeof rawMetaName === "string" ? rawMetaName.trim() : "";
+
+      const emailPrefix = user.email ? user.email.split("@")[0] : "there";
+
+      if (metaName.length > 0) {
+        setDisplayName(metaName);
+        setShowNameDialog(false);
+      } else {
+        // fallback + show dialog to set name once
+        setDisplayName(emailPrefix || "there");
+        setNameInput("");
+        setShowNameDialog(true);
+      }
+
+      // ---- avatar (load-only) ----
+      const rawGender = user.user_metadata?.avatar_gender;
+      const metaGender: "male" | "female" =
+        rawGender === "female" ? "female" : "male";
+
+      setAvatarUrl(resolveAvatarUrl(metaGender));
+    } catch (e) {
+      console.error("Failed to load user prefs:", e);
+      setDisplayName("there");
+      setShowNameDialog(false);
+      setAvatarUrl(resolveAvatarUrl("male"));
+    }
   }, []);
+
+  // ✅ initial load
+  useEffect(() => {
+    loadUserPrefs();
+  }, [loadUserPrefs]);
+
+  // ✅ refresh when you come back to Home (e.g., from EditProfile)
+  useFocusEffect(
+    useCallback(() => {
+      loadUserPrefs();
+    }, [loadUserPrefs])
+  );
 
   const saveDisplayName = async () => {
     const trimmed = nameInput.trim();
@@ -138,7 +149,6 @@ export default function HomeScreen() {
   };
 
   const cancelNameDialog = () => {
-    // Allow skipping: they’ll keep seeing the email prefix
     setShowNameDialog(false);
   };
 
@@ -198,10 +208,7 @@ export default function HomeScreen() {
         style: "destructive",
         onPress: async () => {
           try {
-            const { error } = await supabase
-              .from("patients")
-              .delete()
-              .eq("id", id);
+            const { error } = await supabase.from("patients").delete().eq("id", id);
 
             if (error) throw error;
 
@@ -330,9 +337,7 @@ export default function HomeScreen() {
             <Card.Content>
               <View style={styles.statusRow}>
                 <View style={styles.statusCol}>
-                  <Text style={{ color: "black", fontWeight: "600" }}>
-                    Server
-                  </Text>
+                  <Text style={{ color: "black", fontWeight: "600" }}>Server</Text>
                   <Chip
                     compact
                     style={[
@@ -434,9 +439,7 @@ export default function HomeScreen() {
             Add Test Patient
           </Button>
 
-          <Text style={[styles.header, { marginTop: 25 }]}>
-            🧑‍⚕️ Patient Records
-          </Text>
+          <Text style={[styles.header, { marginTop: 25 }]}>🧑‍⚕️ Patient Records</Text>
 
           {loading ? (
             <Text style={styles.text}>Loading patients...</Text>
@@ -608,4 +611,5 @@ const styles = StyleSheet.create({
     padding: 16,
   },
 });
+
 
