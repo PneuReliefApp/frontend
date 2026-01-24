@@ -16,6 +16,7 @@ import SettingsScreen from "./src/screens/SettingsScreen";
 import NotifsScreen from "./src/screens/Settings/NotifsScreen";
 import AuthScreen from "./src/screens/AuthScreen";
 import SignupScreen from "./src/screens/SignupScreen";
+import ProfileScreen from "./src/screens/ProfileScreen";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import CalibrationsScreen from "./src/screens/Settings/CalibrationsScreen";
 import PneumaticsScreen from './src/screens/PneumaticsScreen';
@@ -126,11 +127,17 @@ export default function App() {
                       case "Home":
                         iconName = "home";
                         break;
+                      case "Pneumatics":
+                        iconName = "air-filter";
+                        break;
                       case "Reports":
                         iconName = "clipboard-pulse";
                         break;
                       case "Settings":
                         iconName = "cog";
+                        break;
+                      case "Profile":
+                        iconName = "account";
                         break;
                       default:
                         iconName = "circle";
@@ -150,7 +157,7 @@ export default function App() {
               <Tab.Screen name="Pneumatics" component={PneumaticsScreen} />
               <Tab.Screen name="Reports" component={ReportsScreen} />
               <Tab.Screen name="Settings" component={SettingsStackNavigator} />
-              <Tab.Screen name="Auth" component={AuthScreen} />
+              <Tab.Screen name="Profile" component={ProfileScreen} />
             </Tab.Navigator>
           )}
           </NavigationContainer>
