@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from "react";
+// src/screens/SettingsScreen.tsx
+import React, { useEffect, useState, useCallback } from "react";
 import { View, StyleSheet, ScrollView, Alert } from "react-native";
 import {
   List,
@@ -35,53 +36,62 @@ const SettingsScreen: React.FC<ProfilePageProps> = ({ navigation }) => {
   const [isSimulating, setIsSimulating] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
 
-  // Dynamic profile
+  // ✅ Dynamic profile
   const [displayName, setDisplayName] = useState<string>("User");
   const [avatarUrl, setAvatarUrl] = useState<string>(MALE_AVATAR);
 
-  // Load user profile (name + avatar) from Supabase auth metadata
-  useEffect(() => {
-    const loadProfile = async () => {
-      try {
-        const { data, error } = await supabase.auth.getUser();
-        if (error) throw error;
+  /**
+   * ✅ Load user profile safely (no .trim on undefined)
+   * - Name fallback: full_name/name/display_name -> email prefix -> "User"
+   * - Avatar fallback: avatar_gender -> "male"
+   */
+  const loadProfile = useCallback(async () => {
+    try {
+      const { data, error } = await supabase.auth.getUser();
+      if (error) throw error;
 
-        const user = data?.user;
+      const user = data?.user;
 
-        if (!user) {
-          setDisplayName("User");
-          setAvatarUrl(resolveAvatarUrl("male"));
-          return;
-        }
-
-        const metaName =
-          user.user_metadata?.full_name ||
-          user.user_metadata?.name ||
-          user.user_metadata?.display_name;
-
-        const emailPrefix = user.email ? user.email.split("@")[0] : "User";
-
-        setDisplayName(
-          metaName && String(metaName).trim().length > 0
-            ? String(metaName).trim()
-            : emailPrefix
-        );
-
-        const metaGender = (user.user_metadata?.avatar_gender as
-          | "male"
-          | "female"
-          | undefined) ?? "male";
-
-        setAvatarUrl(resolveAvatarUrl(metaGender));
-      } catch (e) {
-        console.error("Failed to load profile:", e);
+      if (!user) {
         setDisplayName("User");
         setAvatarUrl(resolveAvatarUrl("male"));
+        return;
       }
-    };
 
-    loadProfile();
+      const rawMetaName =
+        user.user_metadata?.full_name ??
+        user.user_metadata?.name ??
+        user.user_metadata?.display_name;
+
+      const metaName = typeof rawMetaName === "string" ? rawMetaName.trim() : "";
+
+      const emailPrefix =
+        typeof user.email === "string" && user.email.includes("@")
+          ? user.email.split("@")[0]
+          : "";
+
+      setDisplayName(metaName.length > 0 ? metaName : emailPrefix || "User");
+
+      const metaGenderRaw = user.user_metadata?.avatar_gender;
+      const metaGender: "male" | "female" =
+        metaGenderRaw === "female" ? "female" : "male";
+
+      setAvatarUrl(resolveAvatarUrl(metaGender));
+    } catch (e) {
+      console.error("Failed to load profile:", e);
+      setDisplayName("User");
+      setAvatarUrl(resolveAvatarUrl("male"));
+    }
   }, []);
+
+  // Initial load + refresh when screen regains focus (after EditProfile)
+  useEffect(() => {
+    loadProfile();
+    const unsubscribe = navigation.addListener("focus", () => {
+      loadProfile();
+    });
+    return unsubscribe;
+  }, [navigation, loadProfile]);
 
   const peekDatabase = async () => {
     try {
@@ -89,18 +99,27 @@ const SettingsScreen: React.FC<ProfilePageProps> = ({ navigation }) => {
         "SELECT * FROM raw_packets ORDER BY id DESC LIMIT 5"
       );
 
-      if (rows.length === 0) {
+      if (!rows || rows.length === 0) {
         Alert.alert("Database Empty", "Start the simulation first!");
         return;
       }
 
       const displayData = rows
-        .map((r: any) => `ID: ${r.id} | ${r.patch_id} | ${r.pressure.toFixed(1)}`)
+        .map((r: any) => {
+          const id = r?.id ?? "N/A";
+          const patch = r?.patch_id ?? "N/A";
+          const pressure =
+            typeof r?.pressure === "number"
+              ? r.pressure.toFixed(1)
+              : String(r?.pressure ?? "N/A");
+          return `ID: ${id} | ${patch} | ${pressure}`;
+        })
         .join("\n");
 
       Alert.alert("Last 5 Readings", displayData);
     } catch (err) {
       console.error(err);
+      Alert.alert("Error", "Failed to read SQLite data.");
     }
   };
 
@@ -108,6 +127,7 @@ const SettingsScreen: React.FC<ProfilePageProps> = ({ navigation }) => {
     if (isSimulating) {
       stopDataSimulation();
       setIsSimulating(false);
+      Alert.alert("Simulation Stopped", "No longer generating packets.");
     } else {
       startDataSimulation();
       setIsSimulating(true);
@@ -120,16 +140,15 @@ const SettingsScreen: React.FC<ProfilePageProps> = ({ navigation }) => {
 
   const handleManualSync = async () => {
     setIsSyncing(true);
-    const {
-      data: { session },
-    } = await supabase.auth.getSession();
-
-    if (!session?.user) {
-      setIsSyncing(false);
-      return Alert.alert("Error", "No user authenticated");
-    }
-
     try {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+
+      if (!session?.user) {
+        return Alert.alert("Error", "No user authenticated");
+      }
+
       const result = await syncLocalDataToBackend(session.user.id);
 
       const rowRes = await db.getFirstAsync<{ count: number }>(
@@ -143,6 +162,7 @@ const SettingsScreen: React.FC<ProfilePageProps> = ({ navigation }) => {
         } rows`
       );
     } catch (err) {
+      console.error(err);
       Alert.alert("Sync Failed", "Check your FastAPI backend connection.");
     } finally {
       setIsSyncing(false);
@@ -159,15 +179,23 @@ const SettingsScreen: React.FC<ProfilePageProps> = ({ navigation }) => {
           text: "Delete All",
           style: "destructive",
           onPress: async () => {
-            await clearLocalData();
-            Alert.alert("Success", "Local database has been cleared.");
+            try {
+              await clearLocalData();
+              Alert.alert("Success", "Local database has been cleared.");
+            } catch (e) {
+              console.error(e);
+              Alert.alert("Error", "Failed to clear local data.");
+            }
           },
         },
       ]
     );
   };
 
-  // Logout: sign out + reset stack to AuthScreen
+  /**
+   * ✅ Logout
+   * - You DO NOT need navigation.reset. App.tsx swaps stacks when session becomes null.
+   */
   const handleLogout = () => {
     Alert.alert("Log out", "Are you sure you want to log out?", [
       { text: "Cancel", style: "cancel" },
@@ -179,16 +207,10 @@ const SettingsScreen: React.FC<ProfilePageProps> = ({ navigation }) => {
             const { error } = await supabase.auth.signOut();
             if (error) throw error;
 
-            // optional cleanup
             try {
               stopDataSimulation();
               setIsSimulating(false);
             } catch {}
-
-            navigation.reset({
-              index: 0,
-              routes: [{ name: "AuthScreen" }],
-            });
           } catch (e: any) {
             console.error("Logout failed:", e?.message || e);
             Alert.alert("Logout failed", e?.message || "Please try again.");
@@ -198,6 +220,7 @@ const SettingsScreen: React.FC<ProfilePageProps> = ({ navigation }) => {
     ]);
   };
 
+  // ✅ Only include screens you actually registered in SettingsStackNavigator()
   const menuItems = [
     {
       title: "Edit Profile",
@@ -214,16 +237,6 @@ const SettingsScreen: React.FC<ProfilePageProps> = ({ navigation }) => {
       icon: "history",
       onPress: () => navigation.navigate("Calibrations"),
     },
-    {
-      title: "Device Usage",
-      icon: "tablet-dashboard",
-      onPress: () => navigation.navigate("DeviceUsage"),
-    },
-    {
-      title: "Accessibility",
-      icon: "access-point",
-      onPress: () => navigation.navigate("Accessibility"),
-    },
   ];
 
   return (
@@ -233,14 +246,14 @@ const SettingsScreen: React.FC<ProfilePageProps> = ({ navigation }) => {
         <View style={styles.avatarWrapper}>
           <Avatar.Image size={120} source={{ uri: avatarUrl }} />
         </View>
-        <Text style={styles.username}>{displayName}</Text>
 
-        {/* If EditProfile isn't ready, keep this as simple text */}
-        <Text style={styles.subtitle}>View Profile</Text>
+        <Text style={styles.username}>{displayName}</Text>
+        <Text style={styles.subtitle}>Manage your account and app settings</Text>
       </View>
 
       {/* Menu Section */}
       <View style={styles.menuSection}>
+        {/* Simulation */}
         <TouchableRipple
           onPress={toggleSimulation}
           rippleColor="rgba(0,0,0,0.1)"
@@ -254,19 +267,24 @@ const SettingsScreen: React.FC<ProfilePageProps> = ({ navigation }) => {
               {isSimulating ? "Stop 20Hz Simulation" : "Start 20Hz Simulation"}
             </Text>
             {isSimulating && (
-              <Text style={{ color: "green", fontWeight: "bold" }}>RUNNING</Text>
+              <Text style={styles.runningTag}>RUNNING</Text>
             )}
           </View>
         </TouchableRipple>
 
-        <TouchableRipple onPress={peekDatabase}>
+        {/* Peek DB */}
+        <TouchableRipple onPress={peekDatabase} rippleColor="rgba(0,0,0,0.1)">
           <View style={styles.menuItem}>
             <List.Icon icon="eye" color="blue" />
             <Text style={styles.menuText}>Peek SQLite Data</Text>
           </View>
         </TouchableRipple>
 
-        <TouchableRipple onPress={handleDeleteLocalData}>
+        {/* Clear data */}
+        <TouchableRipple
+          onPress={handleDeleteLocalData}
+          rippleColor="rgba(255,0,0,0.08)"
+        >
           <View style={styles.menuItem}>
             <List.Icon icon="database-remove" color={theme.colors.error} />
             <Text style={[styles.menuText, { color: theme.colors.error }]}>
@@ -275,8 +293,13 @@ const SettingsScreen: React.FC<ProfilePageProps> = ({ navigation }) => {
           </View>
         </TouchableRipple>
 
-        <TouchableRipple onPress={handleManualSync} disabled={isSyncing}>
-          <View style={styles.menuItem}>
+        {/* Sync */}
+        <TouchableRipple
+          onPress={handleManualSync}
+          disabled={isSyncing}
+          rippleColor="rgba(0,0,0,0.1)"
+        >
+          <View style={[styles.menuItem, isSyncing && { opacity: 0.6 }]}>
             <List.Icon
               icon="cloud-upload"
               color={isSyncing ? "gray" : theme.colors.primary}
@@ -287,6 +310,7 @@ const SettingsScreen: React.FC<ProfilePageProps> = ({ navigation }) => {
           </View>
         </TouchableRipple>
 
+        {/* Navigation items */}
         {menuItems.map((item, index) => (
           <TouchableRipple
             key={index}
@@ -347,7 +371,7 @@ const styles = StyleSheet.create({
   subtitle: {
     fontSize: 14,
     color: "gray",
-    marginTop: 4,
+    marginTop: 6,
   },
   menuSection: {
     paddingHorizontal: 10,
@@ -359,11 +383,17 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     backgroundColor: "#fff",
     borderRadius: 10,
+    marginBottom: 10,
   },
   menuText: {
     flex: 1,
     fontSize: 16,
     marginLeft: 10,
   },
+  runningTag: {
+    color: "green",
+    fontWeight: "bold",
+  },
 });
+
 
