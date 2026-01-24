@@ -156,10 +156,7 @@ export async function getUserAggregates(
   }
 }
 
-// ============================================================================
 // AUTH API
-// ============================================================================
-
 export interface SignupRequest {
   email: string;
   password: string;
@@ -263,9 +260,9 @@ export async function logout(): Promise<void> {
   }
 }
 
-// ============================================================================
+
+
 // PATIENTS API
-// ============================================================================
 
 export interface Patient {
   id: string;

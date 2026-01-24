@@ -293,6 +293,9 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: COLORS.borderGray,
   },
+  socialButtonDisabled: {
+    opacity: 0.5,
+  },
 
   // Divider
   dividerContainer: {
