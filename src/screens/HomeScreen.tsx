@@ -29,27 +29,30 @@ import LivePositionGraph from "../graphs/live_position_graph";
 
 type Role = "patient" | "caregiver";
 
+const safeTrim = (v: unknown) => (typeof v === "string" ? v.trim() : "");
+
 export default function HomeScreen() {
-  // Connection states (kept for the "Backend Status" card)
+  // (keep your existing backend/bluetooth status card if you want)
   const [backendConnected, setBackendConnected] = useState<boolean | null>(null);
-  const [bluetoothConnected, setBluetoothConnected] = useState<boolean | null>(null);
+  const [bluetoothConnected, setBluetoothConnected] = useState<boolean | null>(
+    null
+  );
 
   const [scrollEnabled, setScrollEnabled] = useState(true);
 
-  // Patients state (caregiver-only)
+  // Patients (caregiver-only)
   const [patients, setPatients] = useState<any[]>([]);
   const [loadingPatients, setLoadingPatients] = useState<boolean>(false);
 
-  // Profile/meta
+  // Profile
   const [displayName, setDisplayName] = useState<string>("there");
-  const [avatarUrl, setAvatarUrl] = useState<string>("");
-  const [role, setRole] = useState<Role>("patient");
-
-  // Name prompt dialog
   const [showNameDialog, setShowNameDialog] = useState<boolean>(false);
   const [nameInput, setNameInput] = useState<string>("");
   const [savingName, setSavingName] = useState<boolean>(false);
 
+  const [role, setRole] = useState<Role>("patient");
+
+  // avatar
   const MALE_AVATAR =
     "https://img.freepik.com/free-vector/businessman-character-avatar-isolated_24877-60111.jpg?w=740";
   const FEMALE_AVATAR =
@@ -58,9 +61,9 @@ export default function HomeScreen() {
   const resolveAvatarUrl = (g: "male" | "female") =>
     g === "female" ? FEMALE_AVATAR : MALE_AVATAR;
 
-  const isCaregiver = role === "caregiver";
+  const [avatarUrl, setAvatarUrl] = useState<string>(MALE_AVATAR);
 
-  // ✅ Load name + avatar + role (safe) and refresh on focus
+  // ✅ Load name + avatar + role (safe) + reusable
   const loadUserPrefs = useCallback(async () => {
     try {
       const { data, error } = await supabase.auth.getUser();
@@ -76,14 +79,18 @@ export default function HomeScreen() {
         return;
       }
 
-      // name (SAFE)
+      // name
       const rawMetaName =
         user.user_metadata?.full_name ??
         user.user_metadata?.name ??
         user.user_metadata?.display_name;
 
-      const metaName = typeof rawMetaName === "string" ? rawMetaName.trim() : "";
-      const emailPrefix = user.email ? user.email.split("@")[0] : "there";
+      const metaName = safeTrim(rawMetaName);
+
+      const emailPrefix =
+        typeof user.email === "string" && user.email.includes("@")
+          ? user.email.split("@")[0]
+          : "there";
 
       if (metaName.length > 0) {
         setDisplayName(metaName);
@@ -96,7 +103,8 @@ export default function HomeScreen() {
 
       // avatar
       const rawGender = user.user_metadata?.avatar_gender;
-      const metaGender: "male" | "female" = rawGender === "female" ? "female" : "male";
+      const metaGender: "male" | "female" =
+        rawGender === "female" ? "female" : "male";
       setAvatarUrl(resolveAvatarUrl(metaGender));
 
       // role
@@ -116,6 +124,7 @@ export default function HomeScreen() {
     loadUserPrefs();
   }, [loadUserPrefs]);
 
+  // ✅ refresh when returning to Home (e.g., after EditProfile)
   useFocusEffect(
     useCallback(() => {
       loadUserPrefs();
@@ -123,7 +132,7 @@ export default function HomeScreen() {
   );
 
   const saveDisplayName = async () => {
-    const trimmed = nameInput.trim();
+    const trimmed = safeTrim(nameInput);
     if (!trimmed) {
       Alert.alert("Name required", "Please enter your name.");
       return;
@@ -138,8 +147,6 @@ export default function HomeScreen() {
 
       if (error) throw error;
 
-      await supabase.auth.getUser();
-
       setDisplayName(trimmed);
       setShowNameDialog(false);
     } catch (e: any) {
@@ -150,58 +157,44 @@ export default function HomeScreen() {
     }
   };
 
-  const cancelNameDialog = () => setShowNameDialog(false);
-
-  // Backend connectivity
-  const testBackendConnection = async () => {
-    try {
-      const ok = await checkConnection();
-      setBackendConnected(ok);
-    } catch (e) {
-      console.error("Backend unreachable:", e);
-      setBackendConnected(false);
-    }
+  const cancelNameDialog = () => {
+    setShowNameDialog(false);
   };
 
-  // Caregiver-only: load patients
-  const loadPatients = async () => {
-    if (!isCaregiver) {
-      setPatients([]);
-      setLoadingPatients(false);
-      return;
-    }
+  // --- caregiver-only: load patients ---
+  const loadPatients = useCallback(async () => {
+    if (role !== "caregiver") return;
 
     try {
       setLoadingPatients(true);
 
-      const { data, error } = await supabase.from("patients").select("*").limit(50);
-      if (error) throw error;
+      const { data, error } = await supabase
+        .from("patients")
+        .select("*")
+        .order("created_at", { ascending: false })
+        .limit(50);
 
+      if (error) throw error;
       setPatients(data || []);
-    } catch (e: any) {
-      console.error("Failed to load patients:", e?.message || e);
-      setPatients([]);
+    } catch (error: any) {
+      console.error("Failed to load patients:", error.message || error);
+      Alert.alert("Error", "Failed to load patient records.");
     } finally {
       setLoadingPatients(false);
     }
-  };
-
-  // run backend check always; load patients only if caregiver
-  useEffect(() => {
-    testBackendConnection();
-  }, []);
+  }, [role]);
 
   useEffect(() => {
-    loadPatients();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isCaregiver]);
-
-  // caregiver-only add patient
-  const addPatient = async () => {
-    if (!isCaregiver) {
-      Alert.alert("Not allowed", "Only caregivers can add patients.");
-      return;
+    if (role === "caregiver") {
+      loadPatients();
+    } else {
+      setPatients([]);
     }
+  }, [role, loadPatients]);
+
+  // --- caregiver-only: add patient ---
+  const addPatient = async () => {
+    if (role !== "caregiver") return;
 
     try {
       const { error } = await supabase
@@ -224,11 +217,9 @@ export default function HomeScreen() {
     }
   };
 
+  // --- caregiver-only: delete patient ---
   const deletePatient = async (id: string, name: string) => {
-    if (!isCaregiver) {
-      Alert.alert("Not allowed", "Only caregivers can delete patients.");
-      return;
-    }
+    if (role !== "caregiver") return;
 
     Alert.alert("Confirm Deletion", `Are you sure you want to delete ${name}?`, [
       { text: "Cancel", style: "cancel" },
@@ -239,6 +230,7 @@ export default function HomeScreen() {
           try {
             const { error } = await supabase.from("patients").delete().eq("id", id);
             if (error) throw error;
+
             await loadPatients();
           } catch (error: any) {
             console.error("Error deleting patient:", error.message || error);
@@ -249,8 +241,24 @@ export default function HomeScreen() {
     ]);
   };
 
+  // backend connection (optional)
+  const testBackendConnection = async () => {
+    try {
+      const ok = await checkConnection();
+      setBackendConnected(ok);
+    } catch (e) {
+      console.error("Backend unreachable:", e);
+      setBackendConnected(false);
+    }
+  };
+
+  useEffect(() => {
+    testBackendConnection();
+  }, []);
+
   return (
     <>
+      {/* Name prompt dialog */}
       <Portal>
         <Dialog visible={showNameDialog} onDismiss={cancelNameDialog}>
           <Dialog.Title>Set your name</Dialog.Title>
@@ -260,8 +268,8 @@ export default function HomeScreen() {
             </Text>
             <TextInput
               label="Your name"
-              value={nameInput}
-              onChangeText={setNameInput}
+              value={typeof nameInput === "string" ? nameInput : ""}
+              onChangeText={(t) => setNameInput(typeof t === "string" ? t : "")}
               mode="outlined"
               autoCapitalize="words"
               autoCorrect={false}
@@ -289,6 +297,7 @@ export default function HomeScreen() {
         contentContainerStyle={styles.scrollContent}
       >
         <View style={styles.container}>
+          {/* Welcome */}
           <Card style={styles.welcomeCard} elevation={4}>
             <ImageBackground
               source={{
@@ -298,7 +307,7 @@ export default function HomeScreen() {
               imageStyle={{ borderRadius: 12 }}
             >
               <View style={styles.welcomeContent}>
-                <Avatar.Image size={80} source={{ uri: avatarUrl || MALE_AVATAR }} />
+                <Avatar.Image size={80} source={{ uri: avatarUrl }} />
                 <View style={styles.welcomeTextContainer}>
                   <Text variant="headlineSmall" style={styles.welcomeText}>
                     Welcome, {displayName}!
@@ -306,12 +315,15 @@ export default function HomeScreen() {
                   <Text variant="bodyMedium" style={styles.subText}>
                     How’s it going today?
                   </Text>
+                  <Text style={{ color: "#fff", marginTop: 6, fontWeight: "600" }}>
+                    Role: {role === "caregiver" ? "Caregiver" : "Patient"}
+                  </Text>
                 </View>
               </View>
             </ImageBackground>
           </Card>
 
-          {/* 3D Foot Model Visualization */}
+          {/* 3D Foot Model */}
           <Card style={styles.footModelCard} elevation={3}>
             <Card.Content style={styles.cardContent}>
               <View style={styles.cardHeader}>
@@ -338,7 +350,7 @@ export default function HomeScreen() {
             </Card.Content>
           </Card>
 
-          {/* Status Overview (kept) */}
+          {/* Backend Status (kept) */}
           <Card style={styles.sectionCard} elevation={2}>
             <Card.Content>
               <View style={styles.statusRow}>
@@ -364,7 +376,9 @@ export default function HomeScreen() {
                 </View>
 
                 <View style={styles.statusCol}>
-                  <Text style={{ color: "black", fontWeight: "600" }}>Bluetooth</Text>
+                  <Text style={{ color: "black", fontWeight: "600" }}>
+                    Bluetooth
+                  </Text>
                   <Chip
                     compact
                     style={[
@@ -386,15 +400,24 @@ export default function HomeScreen() {
 
                 <Chip
                   compact
-                  style={[styles.chip, { backgroundColor: "rgba(236, 240, 241, 0.2)" }]}
-                  textStyle={{ color: "#7f8c8d", fontWeight: "600" }}
+                  style={[
+                    styles.chip,
+                    { backgroundColor: "rgba(236, 240, 241, 0.2)" },
+                  ]}
+                  textStyle={{
+                    color: "#7f8c8d",
+                    fontWeight: "600",
+                  }}
                 >
                   Last Sync: 12 Oct 2024 05:00:00
                 </Chip>
 
                 <Chip
                   compact
-                  style={[styles.chip, { backgroundColor: "rgba(236, 240, 241, 0.2)" }]}
+                  style={[
+                    styles.chip,
+                    { backgroundColor: "rgba(236, 240, 241, 0.2)" },
+                  ]}
                   textStyle={{ fontWeight: "600" }}
                 >
                   Current Patient Position: Standing
@@ -408,10 +431,10 @@ export default function HomeScreen() {
             <LivePositionGraph />
           </View>
 
-          {/* ✅ REMOVED: System Connectivity section (moved to Settings -> System Connectivity) */}
+          {/* ✅ System Connectivity section REMOVED from HomeScreen (moved to Settings -> System Connectivity) */}
 
           {/* ✅ Caregiver-only section */}
-          {isCaregiver ? (
+          {role === "caregiver" ? (
             <>
               <Button mode="contained" onPress={addPatient}>
                 Add Test Patient
@@ -428,7 +451,7 @@ export default function HomeScreen() {
               ) : (
                 <FlatList
                   data={patients}
-                  keyExtractor={(item: any) => String(item.id)}
+                  keyExtractor={(item: any) => item.id}
                   renderItem={({ item }) => (
                     <View style={styles.patientCard}>
                       <View style={{ flex: 1 }}>
@@ -453,14 +476,14 @@ export default function HomeScreen() {
               )}
             </>
           ) : (
-            <Card style={styles.sectionCard} elevation={2}>
+            <Card style={{ marginTop: 16 }} elevation={2}>
               <Card.Content>
                 <Text style={{ fontWeight: "700", marginBottom: 6 }}>
-                  Caregiver access required
+                  Patient Records
                 </Text>
                 <Text style={{ color: "gray" }}>
-                  Patient records and adding patients are only available to caregivers.
-                  You can change your role in Settings → Edit Profile.
+                  Only caregivers are allowed to add patients and view patient
+                  records.
                 </Text>
               </Card.Content>
             </Card>
@@ -479,9 +502,15 @@ const styles = StyleSheet.create({
     paddingTop: 60,
     padding: 20,
   },
-  header: { fontSize: 22, fontWeight: "600", marginBottom: 10 },
-  text: { fontSize: 18, marginVertical: 5 },
-
+  header: {
+    fontSize: 22,
+    fontWeight: "600",
+    marginBottom: 10,
+  },
+  text: {
+    fontSize: 18,
+    marginVertical: 5,
+  },
   patientCard: {
     backgroundColor: "#f8f8f8",
     padding: 15,
@@ -496,20 +525,51 @@ const styles = StyleSheet.create({
     shadowRadius: 2,
     elevation: 2,
   },
-  patientName: { fontSize: 18, fontWeight: "bold" },
-  patientDate: { fontSize: 14, color: "#555" },
-  deleteButton: { padding: 10 },
-  deleteText: { fontSize: 20, color: "red" },
-
-  welcomeCard: { marginBottom: 20 },
-  welcomeBackground: { height: 140, justifyContent: "center", padding: 16 },
-  welcomeContent: { flexDirection: "row", alignItems: "center" },
-  welcomeTextContainer: { marginLeft: 16, flex: 1 },
-  welcomeText: { color: "#fff", fontWeight: "700" },
-  subText: { color: "#fff", marginTop: 4 },
-
-  sectionCard: { marginBottom: 16 },
-  cardContent: { padding: 16 },
+  patientName: {
+    fontSize: 18,
+    fontWeight: "bold",
+  },
+  patientDate: {
+    fontSize: 14,
+    color: "#555",
+  },
+  deleteButton: {
+    padding: 10,
+  },
+  deleteText: {
+    fontSize: 20,
+    color: "red",
+  },
+  welcomeCard: {
+    marginBottom: 20,
+  },
+  welcomeBackground: {
+    height: 150,
+    justifyContent: "center",
+    padding: 16,
+  },
+  welcomeContent: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  welcomeTextContainer: {
+    marginLeft: 16,
+    flex: 1,
+  },
+  welcomeText: {
+    color: "#fff",
+    fontWeight: "700",
+  },
+  subText: {
+    color: "#fff",
+    marginTop: 4,
+  },
+  sectionCard: {
+    marginBottom: 16,
+  },
+  cardContent: {
+    padding: 16,
+  },
   cardHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -524,8 +584,16 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
     borderRadius: 16,
   },
-  rotateText: { fontSize: 12, color: "#3b82f6", fontWeight: "600" },
-  footModelCard: { marginBottom: 16, borderRadius: 12, overflow: "hidden" },
+  rotateText: {
+    fontSize: 12,
+    color: "#3b82f6",
+    fontWeight: "600",
+  },
+  footModelCard: {
+    marginBottom: 16,
+    borderRadius: 12,
+    overflow: "hidden",
+  },
   modelInstructions: {
     textAlign: "center",
     marginTop: 8,
@@ -543,10 +611,18 @@ const styles = StyleSheet.create({
     marginLeft: 10,
     marginRight: 10,
   },
-  statusCol: { flexDirection: "column", alignItems: "center", gap: 3 },
-  chip: { height: 32 },
-
-  scrollContent: { gap: 16, padding: 16 },
+  statusCol: {
+    flexDirection: "column",
+    alignItems: "center",
+    gap: 3,
+  },
+  chip: {
+    height: 32,
+  },
+  scrollContent: {
+    gap: 16,
+    padding: 16,
+  },
 });
 
 

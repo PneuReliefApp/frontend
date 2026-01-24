@@ -8,23 +8,23 @@ import {
   Chip,
   Avatar,
   Divider,
-  useTheme,
 } from "react-native-paper";
 import { supabase } from "../../services/supabase_client";
 
 type Gender = "male" | "female";
 type Role = "patient" | "caregiver";
 
+const safeTrim = (v: unknown) => (typeof v === "string" ? v.trim() : "");
+
 const MALE_AVATAR =
   "https://img.freepik.com/free-vector/businessman-character-avatar-isolated_24877-60111.jpg?w=740";
 const FEMALE_AVATAR =
   "https://img.freepik.com/free-vector/fashionable-avatar-girl_24877-81624.jpg?w=740";
 
-const resolveAvatarUrl = (g: Gender) => (g === "female" ? FEMALE_AVATAR : MALE_AVATAR);
+const resolveAvatarUrl = (g: Gender) =>
+  g === "female" ? FEMALE_AVATAR : MALE_AVATAR;
 
 export default function EditProfile() {
-  const theme = useTheme();
-
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
@@ -60,7 +60,7 @@ export default function EditProfile() {
           user.user_metadata?.name ??
           user.user_metadata?.display_name;
 
-        const metaName = typeof rawMetaName === "string" ? rawMetaName.trim() : "";
+        const metaName = safeTrim(rawMetaName);
 
         const emailPrefix =
           typeof user.email === "string" && user.email.includes("@")
@@ -70,11 +70,13 @@ export default function EditProfile() {
         setFullName(metaName.length > 0 ? metaName : emailPrefix);
 
         const metaGenderRaw = user.user_metadata?.avatar_gender;
-        const metaGender: Gender = metaGenderRaw === "female" ? "female" : "male";
+        const metaGender: Gender =
+          metaGenderRaw === "female" ? "female" : "male";
         setGender(metaGender);
 
         const metaRoleRaw = user.user_metadata?.role;
-        const metaRole: Role = metaRoleRaw === "caregiver" ? "caregiver" : "patient";
+        const metaRole: Role =
+          metaRoleRaw === "caregiver" ? "caregiver" : "patient";
         setRole(metaRole);
       } catch (e: any) {
         console.error("Failed to load profile:", e?.message || e);
@@ -88,7 +90,7 @@ export default function EditProfile() {
   }, []);
 
   const saveProfile = async () => {
-    const trimmed = typeof fullName === "string" ? fullName.trim() : "";
+    const trimmed = safeTrim(fullName);
     if (!trimmed) {
       Alert.alert("Name required", "Please enter your name.");
       return;
@@ -107,7 +109,7 @@ export default function EditProfile() {
 
       if (error) throw error;
 
-      // ✅ refresh local cache immediately
+      // refresh cached user
       await supabase.auth.getUser();
 
       Alert.alert("Saved", "Your profile has been updated.");
@@ -140,8 +142,8 @@ export default function EditProfile() {
         <Card.Content>
           <TextInput
             label="Name"
-            value={fullName ?? ""}
-            onChangeText={(t) => setFullName(t ?? "")}
+            value={typeof fullName === "string" ? fullName : ""}
+            onChangeText={(t) => setFullName(typeof t === "string" ? t : "")}
             mode="outlined"
             autoCapitalize="words"
             style={{ marginBottom: 12 }}
@@ -206,10 +208,30 @@ export default function EditProfile() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#f6f6f6" },
-  sectionCard: { marginBottom: 16, borderRadius: 12, overflow: "hidden" },
-  headerRow: { flexDirection: "row", alignItems: "center", paddingVertical: 6 },
-  subHeader: { fontSize: 15, fontWeight: "700", marginBottom: 8 },
-  chipRow: { flexDirection: "row", gap: 10, flexWrap: "wrap" },
+  container: {
+    flex: 1,
+    backgroundColor: "#f6f6f6",
+  },
+  sectionCard: {
+    marginBottom: 16,
+    borderRadius: 12,
+    overflow: "hidden",
+  },
+  headerRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 6,
+  },
+  subHeader: {
+    fontSize: 15,
+    fontWeight: "700",
+    marginBottom: 8,
+  },
+  chipRow: {
+    flexDirection: "row",
+    gap: 10,
+    flexWrap: "wrap",
+  },
 });
+
 

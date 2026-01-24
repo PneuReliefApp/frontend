@@ -10,8 +10,7 @@ import { supabase } from "./src/services/supabase_client";
 import { Session } from "@supabase/supabase-js";
 import { initDatabase } from "./src/services/database";
 import { setupBackgroundSync } from "./src/services/backgroundSync";
-import EditProfileScreen from "./src/screens/Settings/EditProfile";
-import SystemConnectivityScreen from "./src/screens/Settings/SystemConnectivityScreen";
+
 import HomeScreen from "./src/screens/HomeScreen";
 import ReportsScreen from "./src/screens/ReportsScreen";
 import SettingsScreen from "./src/screens/SettingsScreen";
@@ -20,6 +19,8 @@ import AuthScreen from "./src/screens/AuthScreen";
 import ForgotPasswordScreen from "./src/screens/ForgotPasswordScreen";
 import CalibrationsScreen from "./src/screens/Settings/CalibrationsScreen";
 import PneumaticsScreen from "./src/screens/PneumaticsScreen";
+import EditProfileScreen from "./src/screens/Settings/EditProfile";
+import SystemConnectivityScreen from "./src/screens/Settings/SystemConnectivityScreen";
 
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 
@@ -30,7 +31,6 @@ const AuthStack = createNativeStackNavigator();
 function AuthStackNavigator() {
   return (
     <AuthStack.Navigator screenOptions={{ headerShown: false }}>
-      {/* ✅ your auth route is named "Auth" */}
       <AuthStack.Screen name="Auth" component={AuthScreen} />
       <AuthStack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
     </AuthStack.Navigator>
@@ -47,18 +47,6 @@ function SettingsStackNavigator() {
       />
 
       <SettingsStack.Screen
-        name="Notifications"
-        component={NotifsScreen}
-        options={{ title: "Notifications" }}
-      />
-
-      <SettingsStack.Screen
-        name="Calibrations"
-        component={CalibrationsScreen}
-        options={{ title: "Calibrations" }}
-      />
-
-      <SettingsStack.Screen
         name="EditProfile"
         component={EditProfileScreen}
         options={{ title: "Edit Profile" }}
@@ -70,6 +58,17 @@ function SettingsStackNavigator() {
         options={{ title: "System Connectivity" }}
       />
 
+      <SettingsStack.Screen
+        name="Notifications"
+        component={NotifsScreen}
+        options={{ title: "Notifications" }}
+      />
+
+      <SettingsStack.Screen
+        name="Calibrations"
+        component={CalibrationsScreen}
+        options={{ title: "Calibrations" }}
+      />
     </SettingsStack.Navigator>
   );
 }
@@ -82,12 +81,10 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    // get session on mount
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
     });
 
-    // listen auth changes
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
@@ -95,7 +92,6 @@ export default function App() {
 
       if (session?.user) {
         console.log(`User authenticated: ${session.user.id}`);
-
         const cleanupSync = setupBackgroundSync(session.user.id, 600000);
         return () => cleanupSync();
       } else {
@@ -160,4 +156,6 @@ export default function App() {
     </GestureHandlerRootView>
   );
 }
+
+
 

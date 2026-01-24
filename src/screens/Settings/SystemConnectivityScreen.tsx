@@ -13,7 +13,7 @@ const SystemConnectivityScreen: React.FC = () => {
   const [backendConnected, setBackendConnected] = useState<ConnState>(null);
   const [firestoreConnected, setFirestoreConnected] = useState<ConnState>(null);
 
-  // placeholders for now (wire to actual bluetooth/sensor states later)
+  // placeholders until you wire bluetooth real state
   const [pressureSensorConnected, setPressureSensorConnected] =
     useState<ConnState>(null);
   const [airPressureSensorConnected, setAirPressureSensorConnected] =
@@ -49,7 +49,7 @@ const SystemConnectivityScreen: React.FC = () => {
   };
 
   const loadAll = useCallback(async () => {
-    // Backend connection
+    // Backend
     try {
       const ok = await checkConnection();
       setBackendConnected(ok);
@@ -57,7 +57,7 @@ const SystemConnectivityScreen: React.FC = () => {
       setBackendConnected(false);
     }
 
-    // "Firestore" label (you currently use Supabase; keep the label as requested)
+    // "Firestore" label (your actual implementation is Supabase)
     try {
       const { error } = await supabase.auth.getSession();
       setFirestoreConnected(!error);
@@ -65,10 +65,10 @@ const SystemConnectivityScreen: React.FC = () => {
       setFirestoreConnected(false);
     }
 
-    // Sensors (placeholder)
-    if (pressureSensorConnected === null) setPressureSensorConnected(false);
-    if (airPressureSensorConnected === null) setAirPressureSensorConnected(false);
-  }, [pressureSensorConnected, airPressureSensorConnected]);
+    // Sensors: placeholder defaults
+    setPressureSensorConnected((prev) => (prev === null ? false : prev));
+    setAirPressureSensorConnected((prev) => (prev === null ? false : prev));
+  }, []);
 
   useEffect(() => {
     loadAll();
@@ -114,7 +114,11 @@ export default SystemConnectivityScreen;
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#f6f6f6" },
-  sectionCard: { marginBottom: 16, borderRadius: 12, overflow: "hidden" },
+  sectionCard: {
+    marginBottom: 16,
+    borderRadius: 12,
+    overflow: "hidden",
+  },
   row: {
     flexDirection: "row",
     alignItems: "center",
@@ -125,4 +129,5 @@ const styles = StyleSheet.create({
   chip: { height: 32 },
   hint: { marginTop: 10, color: "gray", fontSize: 12 },
 });
+
 

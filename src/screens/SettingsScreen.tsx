@@ -22,6 +22,8 @@ import { db } from "../services/database";
 
 type ProfilePageProps = NativeStackScreenProps<any, any>;
 
+const safeTrim = (v: unknown) => (typeof v === "string" ? v.trim() : "");
+
 const MALE_AVATAR =
   "https://img.freepik.com/free-vector/businessman-character-avatar-isolated_24877-60111.jpg?w=740";
 const FEMALE_AVATAR =
@@ -57,13 +59,18 @@ const SettingsScreen: React.FC<ProfilePageProps> = ({ navigation }) => {
         user.user_metadata?.name ??
         user.user_metadata?.display_name;
 
-      const metaName = typeof rawMetaName === "string" ? rawMetaName.trim() : "";
-      const emailPrefix = user.email ? user.email.split("@")[0] : "User";
+      const metaName = safeTrim(rawMetaName);
+      const emailPrefix =
+        typeof user.email === "string" && user.email.includes("@")
+          ? user.email.split("@")[0]
+          : "User";
 
       setDisplayName(metaName.length > 0 ? metaName : emailPrefix || "User");
 
       const rawGender = user.user_metadata?.avatar_gender;
-      const metaGender: "male" | "female" = rawGender === "female" ? "female" : "male";
+      const metaGender: "male" | "female" =
+        rawGender === "female" ? "female" : "male";
+
       setAvatarUrl(resolveAvatarUrl(metaGender));
     } catch (e) {
       console.error("Failed to load profile:", e);
@@ -96,7 +103,9 @@ const SettingsScreen: React.FC<ProfilePageProps> = ({ navigation }) => {
       const displayData = rows
         .map((r: any) => {
           const pressure =
-            typeof r.pressure === "number" ? r.pressure.toFixed(1) : String(r.pressure);
+            typeof r.pressure === "number"
+              ? r.pressure.toFixed(1)
+              : String(r.pressure);
           return `ID: ${r.id} | ${r.patch_id} | ${pressure}`;
         })
         .join("\n");
@@ -115,7 +124,10 @@ const SettingsScreen: React.FC<ProfilePageProps> = ({ navigation }) => {
     } else {
       startDataSimulation();
       setIsSimulating(true);
-      Alert.alert("Simulation Started", "Generating 20 packets per second to SQLite.");
+      Alert.alert(
+        "Simulation Started",
+        "Generating 20 packets per second to SQLite."
+      );
     }
   };
 
@@ -139,7 +151,9 @@ const SettingsScreen: React.FC<ProfilePageProps> = ({ navigation }) => {
 
       Alert.alert(
         "Sync Result",
-        `Uploaded: ${result.readingsCount} readings\nDatabase now has: ${rowRes?.count || 0} rows`
+        `Uploaded: ${result.readingsCount} readings\nDatabase now has: ${
+          rowRes?.count || 0
+        } rows`
       );
     } catch (err) {
       Alert.alert("Sync Failed", "Check your FastAPI backend connection.");
@@ -166,7 +180,6 @@ const SettingsScreen: React.FC<ProfilePageProps> = ({ navigation }) => {
     );
   };
 
-  // ✅ Logout: sign out; App.tsx will swap back to AuthStack automatically
   const handleLogout = () => {
     Alert.alert("Log out", "Are you sure you want to log out?", [
       { text: "Cancel", style: "cancel" },
@@ -330,6 +343,8 @@ const styles = StyleSheet.create({
   },
   menuText: { flex: 1, fontSize: 16, marginLeft: 10 },
 });
+
+
 
 
 
