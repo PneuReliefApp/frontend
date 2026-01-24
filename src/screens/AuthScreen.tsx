@@ -16,6 +16,10 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { COLORS } from "../constants/colors";
 import { login } from "../services/api";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import * as WebBrowser from "expo-web-browser";
+import { supabase } from "../services/supabase_client";
+
+WebBrowser.maybeCompleteAuthSession();
 
 export default function AuthScreen({ navigation }: any) {
   const [email, setEmail] = useState("");
@@ -25,6 +29,7 @@ export default function AuthScreen({ navigation }: any) {
   const [rememberMe, setRememberMe] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [socialLoading, setSocialLoading] = useState<string | null>(null);
 
   const signIn = async () => {
     setLoading(true);
@@ -33,23 +38,89 @@ export default function AuthScreen({ navigation }: any) {
     try {
       const response = await login({ email, password });
 
-      // Store tokens
-      await AsyncStorage.setItem("access_token", response.access_token);
-      await AsyncStorage.setItem("refresh_token", response.refresh_token);
-      await AsyncStorage.setItem("user", JSON.stringify(response.user));
+      // Set the Supabase session with the tokens from backend
+      // This will trigger the auth state listener in App.tsx
+      await supabase.auth.setSession({
+        access_token: response.access_token,
+        refresh_token: response.refresh_token,
+      });
 
       setMessage("Logged in Successfully!");
       setIsError(false);
 
-      // Navigate to main app
-      setTimeout(() => {
-        navigation.replace("Main");
-      }, 1000);
+      // Navigation will be handled automatically by App.tsx
+      // which listens to Supabase auth state changes
     } catch (error: any) {
       setMessage(error.message || "Invalid email or password");
       setIsError(true);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleGoogleSignIn = async () => {
+    try {
+      setSocialLoading("google");
+      setMessage("");
+
+      // Use the app's custom scheme for redirect
+      const redirectUrl = "pneurelief://auth/callback";
+
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: {
+          redirectTo: redirectUrl,
+          skipBrowserRedirect: false,
+        },
+      });
+
+      if (error) {
+        setMessage(`Google Sign-In Error: ${error.message}`);
+        setIsError(true);
+        setSocialLoading(null);
+        return;
+      }
+
+      if (data?.url) {
+        const result = await WebBrowser.openAuthSessionAsync(
+          data.url,
+          redirectUrl
+        );
+
+        if (result.type === "success") {
+          const url = result.url;
+          const params = new URLSearchParams(url.split("#")[1] || url.split("?")[1]);
+          const accessToken = params.get("access_token");
+          const refreshToken = params.get("refresh_token");
+
+          if (accessToken && refreshToken) {
+            // Set the Supabase session - this triggers the auth listener in App.tsx
+            const { error: sessionError } = await supabase.auth.setSession({
+              access_token: accessToken,
+              refresh_token: refreshToken,
+            });
+
+            if (sessionError) {
+              setMessage(`Session Error: ${sessionError.message}`);
+              setIsError(true);
+            } else {
+              setMessage("Logged in with Google Successfully!");
+              setIsError(false);
+
+              // Navigation will be handled automatically by App.tsx
+              // which listens to Supabase auth state changes
+            }
+          }
+        } else if (result.type === "cancel") {
+          setMessage("Google Sign-In cancelled");
+          setIsError(true);
+        }
+      }
+    } catch (error: any) {
+      setMessage(`Error: ${error.message}`);
+      setIsError(true);
+    } finally {
+      setSocialLoading(null);
     }
   };
 
@@ -101,15 +172,29 @@ export default function AuthScreen({ navigation }: any) {
 
             {/* Social Login Buttons */}
             <View style={styles.socialButtonsContainer}>
-              <TouchableOpacity style={styles.socialButton}>
-                <MaterialCommunityIcons name="google" size={24} color="#DB4437" />
+              <TouchableOpacity
+                style={styles.socialButton}
+                onPress={handleGoogleSignIn}
+                disabled={socialLoading !== null || loading}
+              >
+                {socialLoading === "google" ? (
+                  <ActivityIndicator size="small" color="#DB4437" />
+                ) : (
+                  <MaterialCommunityIcons name="google" size={24} color="#DB4437" />
+                )}
               </TouchableOpacity>
 
-              <TouchableOpacity style={styles.socialButton}>
+              <TouchableOpacity
+                style={[styles.socialButton, styles.socialButtonDisabled]}
+                disabled={true}
+              >
                 <MaterialCommunityIcons name="apple" size={24} color="#000000" />
               </TouchableOpacity>
 
-              <TouchableOpacity style={styles.socialButton}>
+              <TouchableOpacity
+                style={[styles.socialButton, styles.socialButtonDisabled]}
+                disabled={true}
+              >
                 <MaterialCommunityIcons name="twitter" size={24} color="#1DA1F2" />
               </TouchableOpacity>
             </View>
@@ -192,7 +277,7 @@ export default function AuthScreen({ navigation }: any) {
             <TouchableOpacity
               style={[styles.signInButton, loading && { opacity: 0.6 }]}
               onPress={signIn}
-              disabled={loading}
+              disabled={loading || socialLoading !== null}
             >
               {loading ? (
                 <ActivityIndicator color={COLORS.white} />

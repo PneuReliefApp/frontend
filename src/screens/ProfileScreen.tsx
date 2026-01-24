@@ -10,6 +10,7 @@ import {
 import { LinearGradient } from "expo-linear-gradient";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { supabase } from "../services/supabase_client";
 import { COLORS } from "../constants/colors";
 
 export default function ProfileScreen({ navigation }: any) {
@@ -47,13 +48,16 @@ export default function ProfileScreen({ navigation }: any) {
           style: "destructive",
           onPress: async () => {
             try {
-              // Clear AsyncStorage
+              // Sign out from Supabase (this will trigger the auth state listener in App.tsx)
+              await supabase.auth.signOut();
+
+              // Clear AsyncStorage for backward compatibility
               await AsyncStorage.removeItem("access_token");
               await AsyncStorage.removeItem("refresh_token");
               await AsyncStorage.removeItem("user");
 
               // Navigation will be handled automatically by App.tsx
-              // which checks AsyncStorage every second
+              // which listens to Supabase auth state changes
             } catch (error) {
               console.error("Error during logout:", error);
               Alert.alert("Error", "Failed to logout. Please try again.");

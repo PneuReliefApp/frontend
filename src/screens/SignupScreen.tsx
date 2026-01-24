@@ -16,6 +16,7 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { COLORS } from "../constants/colors";
 import { signup } from "../services/api";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { supabase } from "../services/supabase_client";
 
 type Role = "Patient" | "Caregiver";
 
@@ -48,18 +49,18 @@ export default function SignupScreen({ navigation }: any) {
         emergency_phone_number: role === "Patient" ? emergencyPhoneNumber : undefined,
       });
 
-      // Store tokens
-      await AsyncStorage.setItem("access_token", response.access_token);
-      await AsyncStorage.setItem("refresh_token", response.refresh_token);
-      await AsyncStorage.setItem("user", JSON.stringify(response.user));
+      // Set the Supabase session with the tokens from backend
+      // This will trigger the auth state listener in App.tsx
+      await supabase.auth.setSession({
+        access_token: response.access_token,
+        refresh_token: response.refresh_token,
+      });
 
       setMessage("Account created successfully!");
       setIsError(false);
 
-      // Navigate to main app
-      setTimeout(() => {
-        navigation.replace("Main");
-      }, 1000);
+      // Navigation will be handled automatically by App.tsx
+      // which listens to Supabase auth state changes
     } catch (error: any) {
       setMessage(error.message || "Failed to create account");
       setIsError(true);
