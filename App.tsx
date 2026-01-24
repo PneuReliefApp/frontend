@@ -11,6 +11,7 @@ import { Session } from "@supabase/supabase-js";
 import { initDatabase } from "./src/services/database";
 import { setupBackgroundSync } from "./src/services/backgroundSync";
 import EditProfileScreen from "./src/screens/Settings/EditProfile";
+import SystemConnectivityScreen from "./src/screens/Settings/SystemConnectivityScreen";
 import HomeScreen from "./src/screens/HomeScreen";
 import ReportsScreen from "./src/screens/ReportsScreen";
 import SettingsScreen from "./src/screens/SettingsScreen";
@@ -58,10 +59,17 @@ function SettingsStackNavigator() {
       />
 
       <SettingsStack.Screen
-         name="EditProfile"
-         component={EditProfileScreen}
+        name="EditProfile"
+        component={EditProfileScreen}
         options={{ title: "Edit Profile" }}
       />
+
+      <SettingsStack.Screen
+        name="SystemConnectivity"
+        component={SystemConnectivityScreen}
+        options={{ title: "System Connectivity" }}
+      />
+
     </SettingsStack.Navigator>
   );
 }

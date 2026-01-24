@@ -20,8 +20,7 @@ const MALE_AVATAR =
 const FEMALE_AVATAR =
   "https://img.freepik.com/free-vector/fashionable-avatar-girl_24877-81624.jpg?w=740";
 
-const resolveAvatarUrl = (g: Gender) =>
-  g === "female" ? FEMALE_AVATAR : MALE_AVATAR;
+const resolveAvatarUrl = (g: Gender) => (g === "female" ? FEMALE_AVATAR : MALE_AVATAR);
 
 export default function EditProfile() {
   const theme = useTheme();
@@ -29,7 +28,6 @@ export default function EditProfile() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
-  // Basic profile details
   const [fullName, setFullName] = useState<string>("");
   const [gender, setGender] = useState<Gender>("male");
   const [role, setRole] = useState<Role>("patient");
@@ -109,6 +107,9 @@ export default function EditProfile() {
 
       if (error) throw error;
 
+      // ✅ refresh local cache immediately
+      await supabase.auth.getUser();
+
       Alert.alert("Saved", "Your profile has been updated.");
     } catch (e: any) {
       console.error("Failed to save profile:", e?.message || e);
@@ -120,7 +121,6 @@ export default function EditProfile() {
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={{ padding: 16 }}>
-      {/* Header */}
       <Card style={styles.sectionCard} elevation={2}>
         <Card.Content style={styles.headerRow}>
           <Avatar.Image size={90} source={{ uri: avatarUrl }} />
@@ -135,7 +135,6 @@ export default function EditProfile() {
         </Card.Content>
       </Card>
 
-      {/* Basic Details */}
       <Card style={styles.sectionCard} elevation={2}>
         <Card.Title title="Basic Details" />
         <Card.Content>
@@ -207,28 +206,10 @@ export default function EditProfile() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#f6f6f6",
-  },
-  sectionCard: {
-    marginBottom: 16,
-    borderRadius: 12,
-    overflow: "hidden",
-  },
-  headerRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingVertical: 6,
-  },
-  subHeader: {
-    fontSize: 15,
-    fontWeight: "700",
-    marginBottom: 8,
-  },
-  chipRow: {
-    flexDirection: "row",
-    gap: 10,
-    flexWrap: "wrap",
-  },
+  container: { flex: 1, backgroundColor: "#f6f6f6" },
+  sectionCard: { marginBottom: 16, borderRadius: 12, overflow: "hidden" },
+  headerRow: { flexDirection: "row", alignItems: "center", paddingVertical: 6 },
+  subHeader: { fontSize: 15, fontWeight: "700", marginBottom: 8 },
+  chipRow: { flexDirection: "row", gap: 10, flexWrap: "wrap" },
 });
+

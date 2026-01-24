@@ -1,4 +1,3 @@
-// src/screens/SettingsScreen.tsx
 import React, { useEffect, useState, useCallback } from "react";
 import { View, StyleSheet, ScrollView, Alert } from "react-native";
 import {
@@ -9,6 +8,7 @@ import {
   TouchableRipple,
   Text,
 } from "react-native-paper";
+import { useFocusEffect } from "@react-navigation/native";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 
 import {
@@ -36,15 +36,9 @@ const SettingsScreen: React.FC<ProfilePageProps> = ({ navigation }) => {
   const [isSimulating, setIsSimulating] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
 
-  // ✅ Dynamic profile
   const [displayName, setDisplayName] = useState<string>("User");
   const [avatarUrl, setAvatarUrl] = useState<string>(MALE_AVATAR);
 
-  /**
-   * ✅ Load user profile safely (no .trim on undefined)
-   * - Name fallback: full_name/name/display_name -> email prefix -> "User"
-   * - Avatar fallback: avatar_gender -> "male"
-   */
   const loadProfile = useCallback(async () => {
     try {
       const { data, error } = await supabase.auth.getUser();
@@ -64,18 +58,12 @@ const SettingsScreen: React.FC<ProfilePageProps> = ({ navigation }) => {
         user.user_metadata?.display_name;
 
       const metaName = typeof rawMetaName === "string" ? rawMetaName.trim() : "";
-
-      const emailPrefix =
-        typeof user.email === "string" && user.email.includes("@")
-          ? user.email.split("@")[0]
-          : "";
+      const emailPrefix = user.email ? user.email.split("@")[0] : "User";
 
       setDisplayName(metaName.length > 0 ? metaName : emailPrefix || "User");
 
-      const metaGenderRaw = user.user_metadata?.avatar_gender;
-      const metaGender: "male" | "female" =
-        metaGenderRaw === "female" ? "female" : "male";
-
+      const rawGender = user.user_metadata?.avatar_gender;
+      const metaGender: "male" | "female" = rawGender === "female" ? "female" : "male";
       setAvatarUrl(resolveAvatarUrl(metaGender));
     } catch (e) {
       console.error("Failed to load profile:", e);
@@ -84,14 +72,15 @@ const SettingsScreen: React.FC<ProfilePageProps> = ({ navigation }) => {
     }
   }, []);
 
-  // Initial load + refresh when screen regains focus (after EditProfile)
   useEffect(() => {
     loadProfile();
-    const unsubscribe = navigation.addListener("focus", () => {
+  }, [loadProfile]);
+
+  useFocusEffect(
+    useCallback(() => {
       loadProfile();
-    });
-    return unsubscribe;
-  }, [navigation, loadProfile]);
+    }, [loadProfile])
+  );
 
   const peekDatabase = async () => {
     try {
@@ -106,13 +95,9 @@ const SettingsScreen: React.FC<ProfilePageProps> = ({ navigation }) => {
 
       const displayData = rows
         .map((r: any) => {
-          const id = r?.id ?? "N/A";
-          const patch = r?.patch_id ?? "N/A";
           const pressure =
-            typeof r?.pressure === "number"
-              ? r.pressure.toFixed(1)
-              : String(r?.pressure ?? "N/A");
-          return `ID: ${id} | ${patch} | ${pressure}`;
+            typeof r.pressure === "number" ? r.pressure.toFixed(1) : String(r.pressure);
+          return `ID: ${r.id} | ${r.patch_id} | ${pressure}`;
         })
         .join("\n");
 
@@ -127,28 +112,25 @@ const SettingsScreen: React.FC<ProfilePageProps> = ({ navigation }) => {
     if (isSimulating) {
       stopDataSimulation();
       setIsSimulating(false);
-      Alert.alert("Simulation Stopped", "No longer generating packets.");
     } else {
       startDataSimulation();
       setIsSimulating(true);
-      Alert.alert(
-        "Simulation Started",
-        "Generating 20 packets per second to SQLite."
-      );
+      Alert.alert("Simulation Started", "Generating 20 packets per second to SQLite.");
     }
   };
 
   const handleManualSync = async () => {
     setIsSyncing(true);
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+
+    if (!session?.user) {
+      setIsSyncing(false);
+      return Alert.alert("Error", "No user authenticated");
+    }
+
     try {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-
-      if (!session?.user) {
-        return Alert.alert("Error", "No user authenticated");
-      }
-
       const result = await syncLocalDataToBackend(session.user.id);
 
       const rowRes = await db.getFirstAsync<{ count: number }>(
@@ -157,12 +139,9 @@ const SettingsScreen: React.FC<ProfilePageProps> = ({ navigation }) => {
 
       Alert.alert(
         "Sync Result",
-        `Uploaded: ${result.readingsCount} readings\nDatabase now has: ${
-          rowRes?.count || 0
-        } rows`
+        `Uploaded: ${result.readingsCount} readings\nDatabase now has: ${rowRes?.count || 0} rows`
       );
     } catch (err) {
-      console.error(err);
       Alert.alert("Sync Failed", "Check your FastAPI backend connection.");
     } finally {
       setIsSyncing(false);
@@ -179,23 +158,15 @@ const SettingsScreen: React.FC<ProfilePageProps> = ({ navigation }) => {
           text: "Delete All",
           style: "destructive",
           onPress: async () => {
-            try {
-              await clearLocalData();
-              Alert.alert("Success", "Local database has been cleared.");
-            } catch (e) {
-              console.error(e);
-              Alert.alert("Error", "Failed to clear local data.");
-            }
+            await clearLocalData();
+            Alert.alert("Success", "Local database has been cleared.");
           },
         },
       ]
     );
   };
 
-  /**
-   * ✅ Logout
-   * - You DO NOT need navigation.reset. App.tsx swaps stacks when session becomes null.
-   */
+  // ✅ Logout: sign out; App.tsx will swap back to AuthStack automatically
   const handleLogout = () => {
     Alert.alert("Log out", "Are you sure you want to log out?", [
       { text: "Cancel", style: "cancel" },
@@ -220,12 +191,16 @@ const SettingsScreen: React.FC<ProfilePageProps> = ({ navigation }) => {
     ]);
   };
 
-  // ✅ Only include screens you actually registered in SettingsStackNavigator()
   const menuItems = [
     {
       title: "Edit Profile",
       icon: "account-edit",
       onPress: () => navigation.navigate("EditProfile"),
+    },
+    {
+      title: "System Connectivity",
+      icon: "lan-connect",
+      onPress: () => navigation.navigate("SystemConnectivity"),
     },
     {
       title: "Notifications",
@@ -241,23 +216,18 @@ const SettingsScreen: React.FC<ProfilePageProps> = ({ navigation }) => {
 
   return (
     <ScrollView style={styles.container}>
-      {/* Profile Section */}
-      <View style={styles.profileSection}>
-        <View style={styles.avatarWrapper}>
-          <Avatar.Image size={120} source={{ uri: avatarUrl }} />
+      <TouchableRipple onPress={() => navigation.navigate("EditProfile")}>
+        <View style={styles.profileSection}>
+          <View style={styles.avatarWrapper}>
+            <Avatar.Image size={120} source={{ uri: avatarUrl }} />
+          </View>
+          <Text style={styles.username}>{displayName}</Text>
+          <Text style={styles.subtitle}>View Profile</Text>
         </View>
+      </TouchableRipple>
 
-        <Text style={styles.username}>{displayName}</Text>
-        <Text style={styles.subtitle}>Manage your account and app settings</Text>
-      </View>
-
-      {/* Menu Section */}
       <View style={styles.menuSection}>
-        {/* Simulation */}
-        <TouchableRipple
-          onPress={toggleSimulation}
-          rippleColor="rgba(0,0,0,0.1)"
-        >
+        <TouchableRipple onPress={toggleSimulation} rippleColor="rgba(0,0,0,0.1)">
           <View style={styles.menuItem}>
             <List.Icon
               icon={isSimulating ? "stop-circle" : "play-circle"}
@@ -267,24 +237,19 @@ const SettingsScreen: React.FC<ProfilePageProps> = ({ navigation }) => {
               {isSimulating ? "Stop 20Hz Simulation" : "Start 20Hz Simulation"}
             </Text>
             {isSimulating && (
-              <Text style={styles.runningTag}>RUNNING</Text>
+              <Text style={{ color: "green", fontWeight: "bold" }}>RUNNING</Text>
             )}
           </View>
         </TouchableRipple>
 
-        {/* Peek DB */}
-        <TouchableRipple onPress={peekDatabase} rippleColor="rgba(0,0,0,0.1)">
+        <TouchableRipple onPress={peekDatabase}>
           <View style={styles.menuItem}>
             <List.Icon icon="eye" color="blue" />
             <Text style={styles.menuText}>Peek SQLite Data</Text>
           </View>
         </TouchableRipple>
 
-        {/* Clear data */}
-        <TouchableRipple
-          onPress={handleDeleteLocalData}
-          rippleColor="rgba(255,0,0,0.08)"
-        >
+        <TouchableRipple onPress={handleDeleteLocalData}>
           <View style={styles.menuItem}>
             <List.Icon icon="database-remove" color={theme.colors.error} />
             <Text style={[styles.menuText, { color: theme.colors.error }]}>
@@ -293,13 +258,8 @@ const SettingsScreen: React.FC<ProfilePageProps> = ({ navigation }) => {
           </View>
         </TouchableRipple>
 
-        {/* Sync */}
-        <TouchableRipple
-          onPress={handleManualSync}
-          disabled={isSyncing}
-          rippleColor="rgba(0,0,0,0.1)"
-        >
-          <View style={[styles.menuItem, isSyncing && { opacity: 0.6 }]}>
+        <TouchableRipple onPress={handleManualSync} disabled={isSyncing}>
+          <View style={styles.menuItem}>
             <List.Icon
               icon="cloud-upload"
               color={isSyncing ? "gray" : theme.colors.primary}
@@ -310,7 +270,6 @@ const SettingsScreen: React.FC<ProfilePageProps> = ({ navigation }) => {
           </View>
         </TouchableRipple>
 
-        {/* Navigation items */}
         {menuItems.map((item, index) => (
           <TouchableRipple
             key={index}
@@ -327,7 +286,6 @@ const SettingsScreen: React.FC<ProfilePageProps> = ({ navigation }) => {
 
         <Divider style={{ marginVertical: 20 }} />
 
-        {/* Logout */}
         <TouchableRipple onPress={handleLogout} rippleColor="rgba(255,0,0,0.1)">
           <View style={styles.menuItem}>
             <List.Icon color={theme.colors.error} icon="logout" />
@@ -344,11 +302,7 @@ const SettingsScreen: React.FC<ProfilePageProps> = ({ navigation }) => {
 export default SettingsScreen;
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#f6f6f6",
-    marginTop: 50,
-  },
+  container: { flex: 1, backgroundColor: "#f6f6f6", marginTop: 50 },
   profileSection: {
     alignItems: "center",
     paddingVertical: 40,
@@ -361,21 +315,10 @@ const styles = StyleSheet.create({
     shadowRadius: 10,
     elevation: 5,
   },
-  avatarWrapper: {
-    marginBottom: 15,
-  },
-  username: {
-    fontSize: 22,
-    fontWeight: "700",
-  },
-  subtitle: {
-    fontSize: 14,
-    color: "gray",
-    marginTop: 6,
-  },
-  menuSection: {
-    paddingHorizontal: 10,
-  },
+  avatarWrapper: { marginBottom: 15 },
+  username: { fontSize: 22, fontWeight: "700" },
+  subtitle: { fontSize: 14, color: "gray", marginTop: 4 },
+  menuSection: { paddingHorizontal: 10 },
   menuItem: {
     flexDirection: "row",
     alignItems: "center",
@@ -385,15 +328,8 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     marginBottom: 10,
   },
-  menuText: {
-    flex: 1,
-    fontSize: 16,
-    marginLeft: 10,
-  },
-  runningTag: {
-    color: "green",
-    fontWeight: "bold",
-  },
+  menuText: { flex: 1, fontSize: 16, marginLeft: 10 },
 });
+
 
 

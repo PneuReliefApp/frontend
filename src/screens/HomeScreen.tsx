@@ -27,29 +27,29 @@ import ThreeJSFootVisualization from "../components/ThreeJSFootVisualization";
 import LivePressureGraph from "../graphs/live_pressure_graph";
 import LivePositionGraph from "../graphs/live_position_graph";
 
+type Role = "patient" | "caregiver";
+
 export default function HomeScreen() {
-  // Connection states
+  // Connection states (kept for the "Backend Status" card)
   const [backendConnected, setBackendConnected] = useState<boolean | null>(null);
-  const [bluetoothConnected, setBluetoothConnected] = useState<boolean | null>(
-    null
-  );
-  const [supabaseConnected, setSupabaseConnected] = useState<boolean | null>(
-    null
-  );
+  const [bluetoothConnected, setBluetoothConnected] = useState<boolean | null>(null);
 
   const [scrollEnabled, setScrollEnabled] = useState(true);
 
-  // Supabase data state
+  // Patients state (caregiver-only)
   const [patients, setPatients] = useState<any[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
+  const [loadingPatients, setLoadingPatients] = useState<boolean>(false);
 
-  // Display name + dialog states
+  // Profile/meta
   const [displayName, setDisplayName] = useState<string>("there");
+  const [avatarUrl, setAvatarUrl] = useState<string>("");
+  const [role, setRole] = useState<Role>("patient");
+
+  // Name prompt dialog
   const [showNameDialog, setShowNameDialog] = useState<boolean>(false);
   const [nameInput, setNameInput] = useState<string>("");
   const [savingName, setSavingName] = useState<boolean>(false);
 
-  // Dynamic avatar (loaded only; no editing here)
   const MALE_AVATAR =
     "https://img.freepik.com/free-vector/businessman-character-avatar-isolated_24877-60111.jpg?w=740";
   const FEMALE_AVATAR =
@@ -58,9 +58,9 @@ export default function HomeScreen() {
   const resolveAvatarUrl = (g: "male" | "female") =>
     g === "female" ? FEMALE_AVATAR : MALE_AVATAR;
 
-  const [avatarUrl, setAvatarUrl] = useState<string>(MALE_AVATAR);
+  const isCaregiver = role === "caregiver";
 
-  // ✅ Load name + avatar; safe string handling + reusable
+  // ✅ Load name + avatar + role (safe) and refresh on focus
   const loadUserPrefs = useCallback(async () => {
     try {
       const { data, error } = await supabase.auth.getUser();
@@ -72,50 +72,50 @@ export default function HomeScreen() {
         setDisplayName("there");
         setShowNameDialog(false);
         setAvatarUrl(resolveAvatarUrl("male"));
+        setRole("patient");
         return;
       }
 
-      // ---- name (SAFE) ----
+      // name (SAFE)
       const rawMetaName =
         user.user_metadata?.full_name ??
         user.user_metadata?.name ??
         user.user_metadata?.display_name;
 
-      const metaName =
-        typeof rawMetaName === "string" ? rawMetaName.trim() : "";
-
+      const metaName = typeof rawMetaName === "string" ? rawMetaName.trim() : "";
       const emailPrefix = user.email ? user.email.split("@")[0] : "there";
 
       if (metaName.length > 0) {
         setDisplayName(metaName);
         setShowNameDialog(false);
       } else {
-        // fallback + show dialog to set name once
         setDisplayName(emailPrefix || "there");
         setNameInput("");
         setShowNameDialog(true);
       }
 
-      // ---- avatar (load-only) ----
+      // avatar
       const rawGender = user.user_metadata?.avatar_gender;
-      const metaGender: "male" | "female" =
-        rawGender === "female" ? "female" : "male";
-
+      const metaGender: "male" | "female" = rawGender === "female" ? "female" : "male";
       setAvatarUrl(resolveAvatarUrl(metaGender));
+
+      // role
+      const rawRole = user.user_metadata?.role;
+      const metaRole: Role = rawRole === "caregiver" ? "caregiver" : "patient";
+      setRole(metaRole);
     } catch (e) {
       console.error("Failed to load user prefs:", e);
       setDisplayName("there");
       setShowNameDialog(false);
       setAvatarUrl(resolveAvatarUrl("male"));
+      setRole("patient");
     }
   }, []);
 
-  // ✅ initial load
   useEffect(() => {
     loadUserPrefs();
   }, [loadUserPrefs]);
 
-  // ✅ refresh when you come back to Home (e.g., from EditProfile)
   useFocusEffect(
     useCallback(() => {
       loadUserPrefs();
@@ -138,6 +138,8 @@ export default function HomeScreen() {
 
       if (error) throw error;
 
+      await supabase.auth.getUser();
+
       setDisplayName(trimmed);
       setShowNameDialog(false);
     } catch (e: any) {
@@ -148,36 +150,59 @@ export default function HomeScreen() {
     }
   };
 
-  const cancelNameDialog = () => {
-    setShowNameDialog(false);
-  };
+  const cancelNameDialog = () => setShowNameDialog(false);
 
-  // --- Function to test Supabase ---
-  const testSupabaseConnection = async () => {
+  // Backend connectivity
+  const testBackendConnection = async () => {
     try {
-      setLoading(true);
-
-      const { data, error, status } = await supabase
-        .from("patients")
-        .select("*")
-        .limit(10);
-
-      if (error) throw error;
-
-      console.log("Supabase connected. Status:", status, "Sample data:", data);
-
-      setSupabaseConnected(true);
-      setPatients(data || []);
-    } catch (error: any) {
-      console.error("Supabase connection failed:", error.message || error);
-      setSupabaseConnected(false);
-    } finally {
-      setLoading(false);
+      const ok = await checkConnection();
+      setBackendConnected(ok);
+    } catch (e) {
+      console.error("Backend unreachable:", e);
+      setBackendConnected(false);
     }
   };
 
-  // --- Function to add a test patient ---
+  // Caregiver-only: load patients
+  const loadPatients = async () => {
+    if (!isCaregiver) {
+      setPatients([]);
+      setLoadingPatients(false);
+      return;
+    }
+
+    try {
+      setLoadingPatients(true);
+
+      const { data, error } = await supabase.from("patients").select("*").limit(50);
+      if (error) throw error;
+
+      setPatients(data || []);
+    } catch (e: any) {
+      console.error("Failed to load patients:", e?.message || e);
+      setPatients([]);
+    } finally {
+      setLoadingPatients(false);
+    }
+  };
+
+  // run backend check always; load patients only if caregiver
+  useEffect(() => {
+    testBackendConnection();
+  }, []);
+
+  useEffect(() => {
+    loadPatients();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isCaregiver]);
+
+  // caregiver-only add patient
   const addPatient = async () => {
+    if (!isCaregiver) {
+      Alert.alert("Not allowed", "Only caregivers can add patients.");
+      return;
+    }
+
     try {
       const { error } = await supabase
         .from("patients")
@@ -191,16 +216,20 @@ export default function HomeScreen() {
 
       if (error) throw error;
 
-      alert("Patient added successfully!");
-      await testSupabaseConnection();
+      Alert.alert("Success", "Patient added successfully!");
+      await loadPatients();
     } catch (error: any) {
       console.error("Error adding patient:", error.message || error);
-      alert("Failed to add patient to Supabase.");
+      Alert.alert("Error", "Failed to add patient.");
     }
   };
 
-  // --- Function to delete a patient ---
   const deletePatient = async (id: string, name: string) => {
+    if (!isCaregiver) {
+      Alert.alert("Not allowed", "Only caregivers can delete patients.");
+      return;
+    }
+
     Alert.alert("Confirm Deletion", `Are you sure you want to delete ${name}?`, [
       { text: "Cancel", style: "cancel" },
       {
@@ -209,42 +238,19 @@ export default function HomeScreen() {
         onPress: async () => {
           try {
             const { error } = await supabase.from("patients").delete().eq("id", id);
-
             if (error) throw error;
-
-            await testSupabaseConnection();
+            await loadPatients();
           } catch (error: any) {
             console.error("Error deleting patient:", error.message || error);
-            alert("Failed to delete patient.");
+            Alert.alert("Error", "Failed to delete patient.");
           }
         },
       },
     ]);
   };
 
-  // --- Function to test backend connectivity ---
-  const testBackendConnection = async () => {
-    try {
-      const ok = await checkConnection();
-      setBackendConnected(ok);
-    } catch (e) {
-      console.error("Backend unreachable:", e);
-      setBackendConnected(false);
-    }
-  };
-
-  // --- Run all tests on component load ---
-  useEffect(() => {
-    const runAllTests = async () => {
-      await testBackendConnection();
-      await testSupabaseConnection();
-    };
-    runAllTests();
-  }, []);
-
   return (
     <>
-      {/* ✅ Name prompt dialog (name only) */}
       <Portal>
         <Dialog visible={showNameDialog} onDismiss={cancelNameDialog}>
           <Dialog.Title>Set your name</Dialog.Title>
@@ -292,7 +298,7 @@ export default function HomeScreen() {
               imageStyle={{ borderRadius: 12 }}
             >
               <View style={styles.welcomeContent}>
-                <Avatar.Image size={80} source={{ uri: avatarUrl }} />
+                <Avatar.Image size={80} source={{ uri: avatarUrl || MALE_AVATAR }} />
                 <View style={styles.welcomeTextContainer}>
                   <Text variant="headlineSmall" style={styles.welcomeText}>
                     Welcome, {displayName}!
@@ -332,7 +338,7 @@ export default function HomeScreen() {
             </Card.Content>
           </Card>
 
-          {/* Backend Status */}
+          {/* Status Overview (kept) */}
           <Card style={styles.sectionCard} elevation={2}>
             <Card.Content>
               <View style={styles.statusRow}>
@@ -358,9 +364,7 @@ export default function HomeScreen() {
                 </View>
 
                 <View style={styles.statusCol}>
-                  <Text style={{ color: "black", fontWeight: "600" }}>
-                    Bluetooth
-                  </Text>
+                  <Text style={{ color: "black", fontWeight: "600" }}>Bluetooth</Text>
                   <Chip
                     compact
                     style={[
@@ -382,24 +386,15 @@ export default function HomeScreen() {
 
                 <Chip
                   compact
-                  style={[
-                    styles.chip,
-                    { backgroundColor: "rgba(236, 240, 241, 0.2)" },
-                  ]}
-                  textStyle={{
-                    color: "#7f8c8d",
-                    fontWeight: "600",
-                  }}
+                  style={[styles.chip, { backgroundColor: "rgba(236, 240, 241, 0.2)" }]}
+                  textStyle={{ color: "#7f8c8d", fontWeight: "600" }}
                 >
                   Last Sync: 12 Oct 2024 05:00:00
                 </Chip>
 
                 <Chip
                   compact
-                  style={[
-                    styles.chip,
-                    { backgroundColor: "rgba(236, 240, 241, 0.2)" },
-                  ]}
+                  style={[styles.chip, { backgroundColor: "rgba(236, 240, 241, 0.2)" }]}
                   textStyle={{ fontWeight: "600" }}
                 >
                   Current Patient Position: Standing
@@ -413,63 +408,62 @@ export default function HomeScreen() {
             <LivePositionGraph />
           </View>
 
-          <Text style={styles.header}>🔧 System Connectivity</Text>
+          {/* ✅ REMOVED: System Connectivity section (moved to Settings -> System Connectivity) */}
 
-          <View style={styles.statusBox}>
-            <Text style={styles.text}>
-              Backend:{" "}
-              {backendConnected === null
-                ? "Checking..."
-                : backendConnected
-                ? "✅ Connected"
-                : "❌ Not Connected"}
-            </Text>
+          {/* ✅ Caregiver-only section */}
+          {isCaregiver ? (
+            <>
+              <Button mode="contained" onPress={addPatient}>
+                Add Test Patient
+              </Button>
 
-            <Text style={styles.text}>
-              Firestore:{" "}
-              {supabaseConnected === null
-                ? "Checking..."
-                : supabaseConnected
-                ? "✅ Connected"
-                : "❌ Not Connected"}
-            </Text>
-          </View>
+              <Text style={[styles.header, { marginTop: 25 }]}>
+                🧑‍⚕️ Patient Records
+              </Text>
 
-          <Button mode="contained" onPress={addPatient}>
-            Add Test Patient
-          </Button>
-
-          <Text style={[styles.header, { marginTop: 25 }]}>🧑‍⚕️ Patient Records</Text>
-
-          {loading ? (
-            <Text style={styles.text}>Loading patients...</Text>
-          ) : patients.length === 0 ? (
-            <Text style={styles.text}>No patients found.</Text>
-          ) : (
-            <FlatList
-              data={patients}
-              keyExtractor={(item: any) => item.id}
-              renderItem={({ item }) => (
-                <View style={styles.patientCard}>
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.patientName}>{item.name}</Text>
-                    <Text style={styles.patientDate}>
-                      Added:{" "}
-                      {item.created_at
-                        ? new Date(item.created_at).toLocaleString()
-                        : "Unknown"}
-                    </Text>
-                  </View>
-                  <TouchableOpacity
-                    onPress={() => deletePatient(item.id, item.name)}
-                    style={styles.deleteButton}
-                  >
-                    <Text style={styles.deleteText}>🗑️</Text>
-                  </TouchableOpacity>
-                </View>
+              {loadingPatients ? (
+                <Text style={styles.text}>Loading patients...</Text>
+              ) : patients.length === 0 ? (
+                <Text style={styles.text}>No patients found.</Text>
+              ) : (
+                <FlatList
+                  data={patients}
+                  keyExtractor={(item: any) => String(item.id)}
+                  renderItem={({ item }) => (
+                    <View style={styles.patientCard}>
+                      <View style={{ flex: 1 }}>
+                        <Text style={styles.patientName}>{item.name}</Text>
+                        <Text style={styles.patientDate}>
+                          Added:{" "}
+                          {item.created_at
+                            ? new Date(item.created_at).toLocaleString()
+                            : "Unknown"}
+                        </Text>
+                      </View>
+                      <TouchableOpacity
+                        onPress={() => deletePatient(item.id, item.name)}
+                        style={styles.deleteButton}
+                      >
+                        <Text style={styles.deleteText}>🗑️</Text>
+                      </TouchableOpacity>
+                    </View>
+                  )}
+                  contentContainerStyle={{ paddingVertical: 10 }}
+                />
               )}
-              contentContainerStyle={{ paddingVertical: 10 }}
-            />
+            </>
+          ) : (
+            <Card style={styles.sectionCard} elevation={2}>
+              <Card.Content>
+                <Text style={{ fontWeight: "700", marginBottom: 6 }}>
+                  Caregiver access required
+                </Text>
+                <Text style={{ color: "gray" }}>
+                  Patient records and adding patients are only available to caregivers.
+                  You can change your role in Settings → Edit Profile.
+                </Text>
+              </Card.Content>
+            </Card>
           )}
         </View>
       </ScrollView>
@@ -485,19 +479,9 @@ const styles = StyleSheet.create({
     paddingTop: 60,
     padding: 20,
   },
-  header: {
-    fontSize: 22,
-    fontWeight: "600",
-    marginBottom: 10,
-  },
-  statusBox: {
-    marginBottom: 25,
-    alignItems: "center",
-  },
-  text: {
-    fontSize: 18,
-    marginVertical: 5,
-  },
+  header: { fontSize: 22, fontWeight: "600", marginBottom: 10 },
+  text: { fontSize: 18, marginVertical: 5 },
+
   patientCard: {
     backgroundColor: "#f8f8f8",
     padding: 15,
@@ -512,51 +496,20 @@ const styles = StyleSheet.create({
     shadowRadius: 2,
     elevation: 2,
   },
-  patientName: {
-    fontSize: 18,
-    fontWeight: "bold",
-  },
-  patientDate: {
-    fontSize: 14,
-    color: "#555",
-  },
-  deleteButton: {
-    padding: 10,
-  },
-  deleteText: {
-    fontSize: 20,
-    color: "red",
-  },
-  welcomeCard: {
-    marginBottom: 20,
-  },
-  welcomeBackground: {
-    height: 140,
-    justifyContent: "center",
-    padding: 16,
-  },
-  welcomeContent: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  welcomeTextContainer: {
-    marginLeft: 16,
-    flex: 1,
-  },
-  welcomeText: {
-    color: "#fff",
-    fontWeight: "700",
-  },
-  subText: {
-    color: "#fff",
-    marginTop: 4,
-  },
-  sectionCard: {
-    marginBottom: 16,
-  },
-  cardContent: {
-    padding: 16,
-  },
+  patientName: { fontSize: 18, fontWeight: "bold" },
+  patientDate: { fontSize: 14, color: "#555" },
+  deleteButton: { padding: 10 },
+  deleteText: { fontSize: 20, color: "red" },
+
+  welcomeCard: { marginBottom: 20 },
+  welcomeBackground: { height: 140, justifyContent: "center", padding: 16 },
+  welcomeContent: { flexDirection: "row", alignItems: "center" },
+  welcomeTextContainer: { marginLeft: 16, flex: 1 },
+  welcomeText: { color: "#fff", fontWeight: "700" },
+  subText: { color: "#fff", marginTop: 4 },
+
+  sectionCard: { marginBottom: 16 },
+  cardContent: { padding: 16 },
   cardHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -571,16 +524,8 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
     borderRadius: 16,
   },
-  rotateText: {
-    fontSize: 12,
-    color: "#3b82f6",
-    fontWeight: "600",
-  },
-  footModelCard: {
-    marginBottom: 16,
-    borderRadius: 12,
-    overflow: "hidden",
-  },
+  rotateText: { fontSize: 12, color: "#3b82f6", fontWeight: "600" },
+  footModelCard: { marginBottom: 16, borderRadius: 12, overflow: "hidden" },
   modelInstructions: {
     textAlign: "center",
     marginTop: 8,
@@ -598,18 +543,11 @@ const styles = StyleSheet.create({
     marginLeft: 10,
     marginRight: 10,
   },
-  statusCol: {
-    flexDirection: "column",
-    alignItems: "center",
-    gap: 3,
-  },
-  chip: {
-    height: 32,
-  },
-  scrollContent: {
-    gap: 16,
-    padding: 16,
-  },
+  statusCol: { flexDirection: "column", alignItems: "center", gap: 3 },
+  chip: { height: 32 },
+
+  scrollContent: { gap: 16, padding: 16 },
 });
+
 
 
