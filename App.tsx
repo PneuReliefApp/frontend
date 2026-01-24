@@ -5,9 +5,8 @@ import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { Provider as PaperProvider } from "react-native-paper";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
-import { supabase } from "./src/services/supabase_client"; 
-import { Session } from "@supabase/supabase-js";
 import { initDatabase } from "./src/services/database";
 import { setupBackgroundSync } from "./src/services/backgroundSync";
 
@@ -52,45 +51,68 @@ function AuthStackNavigator() {
 }
 
 export default function App() {
-  const [session, setSession] = useState<Session | null>(null)
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [userId, setUserId] = useState<string | null>(null);
 
   useEffect(() => {
     initDatabase();
   }, []);
 
   useEffect(() => {
-    // check current supabase session on mount
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session)
-    });
+    // Check for stored auth token on mount
+    checkAuthStatus();
 
-    // listen for auth changes login/logout/token refresh
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session);
+    // Add listener to re-check auth when app becomes active
+    const interval = setInterval(checkAuthStatus, 1000); // Check every second
 
-      if (session?.user) {
-        console.log(`User authenticated: ${session.user.id}`)
-
-        // Startup the sync process once we have a real UID
-        const cleanupSync = setupBackgroundSync(session.user.id, 600000);
-
-        // Stops the sync if the user logs out
-        return () => cleanupSync();
-      } else {
-        console.log("No user logged in.");
-      }
-    });
-    
-    // Cleanup the listener when the app unmounts
-    return () => subscription.unsubscribe();
+    return () => clearInterval(interval);
   }, []);
+
+  useEffect(() => {
+    // Setup background sync when user is authenticated
+    if (isAuthenticated && userId) {
+      console.log(`User authenticated: ${userId}`);
+      const cleanupSync = setupBackgroundSync(userId, 600000);
+      return () => cleanupSync();
+    } else {
+      console.log("No user logged in.");
+    }
+  }, [isAuthenticated, userId]);
+
+  const checkAuthStatus = async () => {
+    try {
+      const token = await AsyncStorage.getItem("access_token");
+      const userString = await AsyncStorage.getItem("user");
+
+      if (token && userString) {
+        const user = JSON.parse(userString);
+        setIsAuthenticated(true);
+        setUserId(user.id);
+      } else {
+        setIsAuthenticated(false);
+        setUserId(null);
+      }
+    } catch (error) {
+      console.error("Error checking auth status:", error);
+      setIsAuthenticated(false);
+      setUserId(null);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  if (isLoading) {
+    // Show loading screen while checking auth status
+    return null; // You can replace this with a loading spinner component
+  }
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <PaperProvider>
         <SafeAreaProvider>
           <NavigationContainer>
-            {!session ? (
+            {!isAuthenticated ? (
               <AuthStackNavigator />
             ) : (
               <Tab.Navigator

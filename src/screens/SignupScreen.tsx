@@ -9,10 +9,13 @@ import {
   KeyboardAvoidingView,
   Platform,
   Modal,
+  ActivityIndicator,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { COLORS } from "../constants/colors";
+import { signup } from "../services/api";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 type Role = "Patient" | "Caregiver";
 
@@ -26,18 +29,43 @@ export default function SignupScreen({ navigation }: any) {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [showRolePicker, setShowRolePicker] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState("");
+  const [isError, setIsError] = useState(false);
 
-  const handleContinue = () => {
-    // TODO: Connect to backend/Supabase
-    console.log({
-      email,
-      fullName,
-      username,
-      role,
-      phoneNumber,
-      emergencyPhoneNumber: role === "Patient" ? emergencyPhoneNumber : null,
-      password,
-    });
+  const handleContinue = async () => {
+    setLoading(true);
+    setMessage("");
+
+    try {
+      const response = await signup({
+        email,
+        password,
+        full_name: fullName,
+        username,
+        role,
+        phone_number: phoneNumber,
+        emergency_phone_number: role === "Patient" ? emergencyPhoneNumber : undefined,
+      });
+
+      // Store tokens
+      await AsyncStorage.setItem("access_token", response.access_token);
+      await AsyncStorage.setItem("refresh_token", response.refresh_token);
+      await AsyncStorage.setItem("user", JSON.stringify(response.user));
+
+      setMessage("Account created successfully!");
+      setIsError(false);
+
+      // Navigate to main app
+      setTimeout(() => {
+        navigation.replace("Main");
+      }, 1000);
+    } catch (error: any) {
+      setMessage(error.message || "Failed to create account");
+      setIsError(true);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -59,6 +87,21 @@ export default function SignupScreen({ navigation }: any) {
             <View style={styles.headerSection}>
               <Text style={styles.titleText}>Create Account</Text>
             </View>
+
+            {/* Error/Success Message */}
+            {message ? (
+              <View style={[styles.alertContainer, isError ? styles.alertError : styles.alertSuccess]}>
+                <MaterialCommunityIcons
+                  name={isError ? "alert-circle" : "check-circle"}
+                  size={20}
+                  color={isError ? COLORS.errorRed : "#10B981"}
+                  style={styles.alertIcon}
+                />
+                <Text style={[styles.alertText, isError ? styles.alertTextError : styles.alertTextSuccess]}>
+                  {message}
+                </Text>
+              </View>
+            ) : null}
 
             {/* Email Input */}
             <View style={styles.inputContainer}>
@@ -170,15 +213,22 @@ export default function SignupScreen({ navigation }: any) {
 
             {/* Continue Button */}
             <TouchableOpacity
-              style={styles.continueButton}
+              style={[styles.continueButton, loading && { opacity: 0.6 }]}
               onPress={handleContinue}
+              disabled={loading}
             >
-              <Text style={styles.continueButtonText}>Continue</Text>
-              <MaterialCommunityIcons
-                name="arrow-right"
-                size={20}
-                color={COLORS.white}
-              />
+              {loading ? (
+                <ActivityIndicator color={COLORS.white} />
+              ) : (
+                <>
+                  <Text style={styles.continueButtonText}>Continue</Text>
+                  <MaterialCommunityIcons
+                    name="arrow-right"
+                    size={20}
+                    color={COLORS.white}
+                  />
+                </>
+              )}
             </TouchableOpacity>
 
             {/* Sign In Link */}
@@ -434,5 +484,38 @@ const styles = StyleSheet.create({
   roleOptionTextSelected: {
     color: COLORS.primaryBlue,
     fontWeight: "600",
+  },
+
+  // Alert/Message
+  alertContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 20,
+  },
+  alertError: {
+    backgroundColor: "#FEE2E2",
+    borderWidth: 1,
+    borderColor: "#FCA5A5",
+  },
+  alertSuccess: {
+    backgroundColor: "#D1FAE5",
+    borderWidth: 1,
+    borderColor: "#6EE7B7",
+  },
+  alertIcon: {
+    marginRight: 8,
+  },
+  alertText: {
+    flex: 1,
+    fontSize: 14,
+    fontWeight: "500",
+  },
+  alertTextError: {
+    color: "#991B1B",
+  },
+  alertTextSuccess: {
+    color: "#065F46",
   },
 });

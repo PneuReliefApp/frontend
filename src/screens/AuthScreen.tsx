@@ -9,29 +9,47 @@ import {
   ScrollView,
   KeyboardAvoidingView,
   Platform,
+  ActivityIndicator,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { supabase } from "../services/supabase_client";
 import { COLORS } from "../constants/colors";
+import { login } from "../services/api";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 export default function AuthScreen({ navigation }: any) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [message, setMessage] = useState("");
+  const [isError, setIsError] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   const signIn = async () => {
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
+    setLoading(true);
+    setMessage("");
 
-    if (error) {
-      setMessage(`Login Error: ${error.message}`);
-    } else {
+    try {
+      const response = await login({ email, password });
+
+      // Store tokens
+      await AsyncStorage.setItem("access_token", response.access_token);
+      await AsyncStorage.setItem("refresh_token", response.refresh_token);
+      await AsyncStorage.setItem("user", JSON.stringify(response.user));
+
       setMessage("Logged in Successfully!");
+      setIsError(false);
+
+      // Navigate to main app
+      setTimeout(() => {
+        navigation.replace("Main");
+      }, 1000);
+    } catch (error: any) {
+      setMessage(error.message || "Invalid email or password");
+      setIsError(true);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -65,6 +83,21 @@ export default function AuthScreen({ navigation }: any) {
                 Please enter your details to sign in
               </Text>
             </View>
+
+            {/* Error/Success Message */}
+            {message ? (
+              <View style={[styles.alertContainer, isError ? styles.alertError : styles.alertSuccess]}>
+                <MaterialCommunityIcons
+                  name={isError ? "alert-circle" : "check-circle"}
+                  size={20}
+                  color={isError ? COLORS.errorRed : "#10B981"}
+                  style={styles.alertIcon}
+                />
+                <Text style={[styles.alertText, isError ? styles.alertTextError : styles.alertTextSuccess]}>
+                  {message}
+                </Text>
+              </View>
+            ) : null}
 
             {/* Social Login Buttons */}
             <View style={styles.socialButtonsContainer}>
@@ -156,8 +189,16 @@ export default function AuthScreen({ navigation }: any) {
             </View>
 
             {/* Sign In Button */}
-            <TouchableOpacity style={styles.signInButton} onPress={signIn}>
-              <Text style={styles.signInButtonText}>Sign in</Text>
+            <TouchableOpacity
+              style={[styles.signInButton, loading && { opacity: 0.6 }]}
+              onPress={signIn}
+              disabled={loading}
+            >
+              {loading ? (
+                <ActivityIndicator color={COLORS.white} />
+              ) : (
+                <Text style={styles.signInButtonText}>Sign in</Text>
+              )}
             </TouchableOpacity>
 
             {/* Sign Up Link */}
@@ -167,9 +208,6 @@ export default function AuthScreen({ navigation }: any) {
                 <Text style={styles.signUpLink}>Sign up</Text>
               </TouchableOpacity>
             </View>
-
-            {/* Message Display */}
-            {message ? <Text style={styles.message}>{message}</Text> : null}
           </View>
         </ScrollView>
       </LinearGradient>
@@ -376,11 +414,36 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
 
-  // Message
-  message: {
-    marginTop: 16,
-    textAlign: "center",
+  // Alert/Message
+  alertContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 20,
+  },
+  alertError: {
+    backgroundColor: "#FEE2E2",
+    borderWidth: 1,
+    borderColor: "#FCA5A5",
+  },
+  alertSuccess: {
+    backgroundColor: "#D1FAE5",
+    borderWidth: 1,
+    borderColor: "#6EE7B7",
+  },
+  alertIcon: {
+    marginRight: 8,
+  },
+  alertText: {
+    flex: 1,
     fontSize: 14,
-    color: COLORS.errorRed,
+    fontWeight: "500",
+  },
+  alertTextError: {
+    color: "#991B1B",
+  },
+  alertTextSuccess: {
+    color: "#065F46",
   },
 });

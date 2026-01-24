@@ -157,6 +157,113 @@ export async function getUserAggregates(
 }
 
 // ============================================================================
+// AUTH API
+// ============================================================================
+
+export interface SignupRequest {
+  email: string;
+  password: string;
+  full_name: string;
+  username: string;
+  role: string;
+  phone_number: string;
+  emergency_phone_number?: string;
+}
+
+export interface LoginRequest {
+  email: string;
+  password: string;
+}
+
+export interface AuthResponse {
+  access_token: string;
+  refresh_token: string;
+  user: {
+    id: string;
+    email: string;
+    full_name: string;
+    username: string;
+    role: string;
+    phone_number: string;
+    emergency_phone_number?: string;
+  };
+}
+
+export async function signup(data: SignupRequest): Promise<AuthResponse> {
+  try {
+    console.log(`Signing up user: ${data.email}`);
+
+    const response = await fetch(`${API_URL}/auth/signup`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(data),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.detail || "Signup failed");
+    }
+
+    const authData: AuthResponse = await response.json();
+    console.log(`User signed up successfully: ${authData.user.id}`);
+    return authData;
+  } catch (error: any) {
+    console.error("Error during signup:", error.message || error);
+    throw error;
+  }
+}
+
+export async function login(credentials: LoginRequest): Promise<AuthResponse> {
+  try {
+    console.log(`Logging in user: ${credentials.email}`);
+
+    const response = await fetch(`${API_URL}/auth/login`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(credentials),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.detail || "Login failed");
+    }
+
+    const authData: AuthResponse = await response.json();
+    console.log(`User logged in successfully: ${authData.user.id}`);
+    return authData;
+  } catch (error: any) {
+    console.error("Error during login:", error.message || error);
+    throw error;
+  }
+}
+
+export async function logout(): Promise<void> {
+  try {
+    console.log("Logging out user");
+
+    const response = await fetch(`${API_URL}/auth/logout`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error("Logout failed");
+    }
+
+    console.log("User logged out successfully");
+  } catch (error: any) {
+    console.error("Error during logout:", error.message || error);
+    throw error;
+  }
+}
+
+// ============================================================================
 // PATIENTS API
 // ============================================================================
 
