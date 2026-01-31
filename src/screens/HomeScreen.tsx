@@ -25,7 +25,6 @@ import {
 import { checkConnection } from "../services/api";
 import { supabase } from "../services/supabase_client";
 import ThreeJSFootVisualization from "../components/ThreeJSFootVisualization";
-import { VictoryChart, VictoryLine, VictoryTheme } from "victory-native";
 import LivePressureGraph from "../graphs/live_pressure_graph";
 import LivePositionGraph from "../graphs/live_position_graph";
 import PressureGraph from "../components/SimplePressureGraph";
@@ -61,14 +60,15 @@ export default function HomeScreen() {
   const [pressureReadings, setPressureReadings] = useState<number[]>([]);
   const maxPoints = 50;
 
-  // Check backend connection
-  React.useEffect(() => {
-    const testConnection = async () => {
-      const ok = await checkConnection();
-      setConnected(ok);
-    };
-    testConnection();
-  }, []);
+  // Check backend connection (disabled for local BLE testing)
+  // To re-enable, update BACKEND_URL in .env with your computer's IP (not localhost)
+  // React.useEffect(() => {
+  //   const testConnection = async () => {
+  //     const ok = await checkConnection();
+  //     setConnected(ok);
+  //   };
+  //   testConnection();
+  // }, []);
 
   // Handle BLE connection
   const handleConnect = async () => {

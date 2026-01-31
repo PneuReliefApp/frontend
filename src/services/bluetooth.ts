@@ -187,14 +187,9 @@ class BluetoothService {
     this.onReadingCallback = onReading;
 
     try {
-      // Read initial characteristic value
-      const characteristic = await this.device.readCharacteristicForService(
-        SERVICE_UUID,
-        SENSOR_CHAR_UUID
-      );
-      console.log("Initial characteristic value:", characteristic.value);
+      console.log("Starting sensor monitoring...");
 
-      // Start monitoring
+      // Start monitoring (don't try to read first - characteristic may be notify-only)
       this.monitoringSubscription = this.device.monitorCharacteristicForService(
         SERVICE_UUID,
         SENSOR_CHAR_UUID,
@@ -206,15 +201,18 @@ class BluetoothService {
 
           if (characteristic?.value) {
             try {
-              // Decode base64 to buffer, then to string, then parse as float
-              const decoded = Buffer.from(
-                characteristic.value,
-                "base64"
-              ).toString("utf8");
-              const reading = parseFloat(decoded.trim());
-
-              if (!isNaN(reading) && this.onReadingCallback) {
-                this.onReadingCallback(reading);
+              // Decode base64 to buffer, then read as uint16 little-endian
+              // Arduino sends: pChar->setValue((uint8_t*)&adc, sizeof(adc))
+              // which is 2 bytes, little-endian uint16
+              const buffer = Buffer.from(characteristic.value, "base64");
+              
+              if (buffer.length >= 2) {
+                // Read as unsigned 16-bit integer, little-endian
+                const reading = buffer.readUInt16LE(0);
+                
+                if (this.onReadingCallback) {
+                  this.onReadingCallback(reading);
+                }
               }
             } catch (e) {
               console.error("Failed to decode sensor data:", e);
