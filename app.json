@@ -7,6 +7,7 @@
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
+    "scheme": "pneurelief",
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
@@ -33,6 +34,7 @@
           "BLUETOOTH_ADVERTISE"
         ]
       },
+      "package": "com.anonymous.pneurelief_frontend",
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
       "package": "com.melaniechoi2040.pneurelieffrontend"

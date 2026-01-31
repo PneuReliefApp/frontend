@@ -5,8 +5,9 @@ import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { Provider as PaperProvider } from "react-native-paper";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
-import { supabase } from "./src/services/supabase_client"; 
+import { supabase } from "./src/services/supabase_client";
 import { Session } from "@supabase/supabase-js";
 import { initDatabase } from "./src/services/database";
 import { setupBackgroundSync } from "./src/services/backgroundSync";
@@ -16,12 +17,15 @@ import ReportsScreen from "./src/screens/ReportsScreen";
 import SettingsScreen from "./src/screens/SettingsScreen";
 import NotifsScreen from "./src/screens/Settings/NotifsScreen";
 import AuthScreen from "./src/screens/AuthScreen";
+import SignupScreen from "./src/screens/SignupScreen";
+import ProfileScreen from "./src/screens/ProfileScreen";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import CalibrationsScreen from "./src/screens/Settings/CalibrationsScreen";
 import PneumaticsScreen from './src/screens/PneumaticsScreen';
 
 const Tab = createBottomTabNavigator();
 const SettingsStack = createNativeStackNavigator();
+const AuthStack = createNativeStackNavigator();
 
 function SettingsStackNavigator() {
   return (
@@ -40,36 +44,59 @@ function SettingsStackNavigator() {
   );
 }
 
+function AuthStackNavigator() {
+  return (
+    <AuthStack.Navigator screenOptions={{ headerShown: false }}>
+      <AuthStack.Screen name="Auth" component={AuthScreen} />
+      <AuthStack.Screen name="Signup" component={SignupScreen} />
+    </AuthStack.Navigator>
+  );
+}
+
 export default function App() {
-  const [session, setSession] = useState<Session | null>(null)
+  const [session, setSession] = useState<Session | null>(null);
 
   useEffect(() => {
     initDatabase();
   }, []);
 
   useEffect(() => {
-    // check current supabase session on mount
+    // Check current supabase session on mount
     supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session)
+      setSession(session);
     });
 
-    // listen for auth changes login/logout/token refresh
+    // Listen for auth changes: login/logout/token refresh
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
 
       if (session?.user) {
-        console.log(`User authenticated: ${session.user.id}`)
+        console.log(`User authenticated: ${session.user.id}`);
 
-        // Startup the sync process once we have a real UID
+        // Store tokens in AsyncStorage for backward compatibility
+        AsyncStorage.setItem("access_token", session.access_token);
+        AsyncStorage.setItem("refresh_token", session.refresh_token);
+        AsyncStorage.setItem("user", JSON.stringify({
+          id: session.user.id,
+          email: session.user.email,
+          full_name: session.user.user_metadata?.full_name || session.user.email,
+        }));
+
+        // Setup background sync once we have a real UID
         const cleanupSync = setupBackgroundSync(session.user.id, 600000);
 
-        // Stops the sync if the user logs out
+        // Stop the sync if the user logs out
         return () => cleanupSync();
       } else {
         console.log("No user logged in.");
+
+        // Clear AsyncStorage on logout
+        AsyncStorage.removeItem("access_token");
+        AsyncStorage.removeItem("refresh_token");
+        AsyncStorage.removeItem("user");
       }
     });
-    
+
     // Cleanup the listener when the app unmounts
     return () => subscription.unsubscribe();
   }, []);
@@ -80,7 +107,7 @@ export default function App() {
         <SafeAreaProvider>
           <NavigationContainer>
             {!session ? (
-              <AuthScreen />
+              <AuthStackNavigator />
             ) : (
               <Tab.Navigator
                 initialRouteName="Home"
@@ -93,11 +120,17 @@ export default function App() {
                       case "Home":
                         iconName = "home";
                         break;
+                      case "Pneumatics":
+                        iconName = "air-filter";
+                        break;
                       case "Reports":
                         iconName = "clipboard-pulse";
                         break;
                       case "Settings":
                         iconName = "cog";
+                        break;
+                      case "Profile":
+                        iconName = "account";
                         break;
                       default:
                         iconName = "circle";
@@ -117,9 +150,9 @@ export default function App() {
               <Tab.Screen name="Pneumatics" component={PneumaticsScreen} />
               <Tab.Screen name="Reports" component={ReportsScreen} />
               <Tab.Screen name="Settings" component={SettingsStackNavigator} />
-              <Tab.Screen name="Auth" component={AuthScreen} />
+              <Tab.Screen name="Profile" component={ProfileScreen} />
             </Tab.Navigator>
-            )}
+          )}
           </NavigationContainer>
         </SafeAreaProvider>
       </PaperProvider>
