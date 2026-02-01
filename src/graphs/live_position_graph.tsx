@@ -1,12 +1,6 @@
 import React from "react";
-import { View } from "react-native";
-import { Text, Card } from "react-native-paper";
-import {
-  VictoryChart,
-  VictoryBar,
-  VictoryAxis,
-  VictoryTheme,
-} from "victory-native";
+import { View, Dimensions } from "react-native";
+import { Text } from "react-native-paper";
 
 const positionData = [
   { position: "standing", duration: 5 },
@@ -24,6 +18,7 @@ const positionColors: Record<string, string> = {
   lying: "#f59e0b",
 };
 
+// Expand data to per-second segments
 let expandedData: { second: number; position: string }[] = [];
 let timeCounter = 0;
 for (const segment of positionData) {
@@ -34,15 +29,14 @@ for (const segment of positionData) {
 }
 
 const LivePositionGraph = () => {
+  const screenWidth = Dimensions.get("window").width - 60;
+  const graphHeight = 120;
+  const totalSeconds = expandedData.length;
+
   return (
     <View style={{ alignItems: "center", justifyContent: "center" }}>
-      <View
-        style={{
-          flexDirection: "row",
-          justifyContent: "center",
-          alignItems: "center",
-        }}
-      >
+      {/* Legend */}
+      <View style={{ flexDirection: "row", justifyContent: "center", alignItems: "center", marginBottom: 8 }}>
         {Object.entries(positionColors).map(([position, color]) => (
           <View
             key={position}
@@ -68,31 +62,36 @@ const LivePositionGraph = () => {
         ))}
       </View>
 
-      <View style={{ height: 180 }}>
-        <VictoryChart
-          theme={VictoryTheme.material}
-          domainPadding={{ x: 5, y: 5 }}
-          padding={{ top: 20, bottom: 40, left: 40, right: 20 }}
-          height={180}
-        >
-          <VictoryBar
-            data={expandedData}
-            x="second"
-            y={() => 1}
+      {/* Graph - horizontal bar segments */}
+      <View
+        style={{
+          width: screenWidth,
+          height: graphHeight,
+          backgroundColor: "#f5f5f5",
+          borderRadius: 8,
+          overflow: "hidden",
+          flexDirection: "row",
+          alignItems: "flex-end",
+        }}
+      >
+        {expandedData.map((item, index) => (
+          <View
+            key={index}
             style={{
-              data: {
-                fill: ({ datum }) => positionColors[datum.position],
-                width: 6,
-              },
+              width: screenWidth / totalSeconds,
+              height: graphHeight * 0.7,
+              backgroundColor: positionColors[item.position],
+              marginBottom: graphHeight * 0.15,
             }}
           />
-          <VictoryAxis
-            label="Time (s)"
-            tickValues={[0, 10, 20, 30, 40, 50]}
-            style={{ axisLabel: { padding: 30 } }}
-          />
+        ))}
+      </View>
 
-        </VictoryChart>
+      {/* X-axis labels */}
+      <View style={{ flexDirection: "row", justifyContent: "space-between", width: screenWidth, marginTop: 4 }}>
+        <Text variant="labelSmall" style={{ color: "#666" }}>0s</Text>
+        <Text variant="labelSmall" style={{ color: "#666" }}>Time (s)</Text>
+        <Text variant="labelSmall" style={{ color: "#666" }}>{totalSeconds}s</Text>
       </View>
     </View>
   );
