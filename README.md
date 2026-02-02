@@ -8,7 +8,7 @@ React Native app using Expo Dev Client for BLE connectivity with the ESP32-PneuR
 
 This app uses **react-native-ble-plx** for Bluetooth Low Energy (BLE). Because BLE is a native module:
 
-- ❌ **Expo Go does NOT work** — it doesn't support native BLE modules
+- ❌ **Expo Go does NOT work for testing BLE** — it doesn't support native BLE modules
 - ❌ **Simulators/Emulators do NOT work** — they don't have real Bluetooth hardware
 - ✅ **Physical device required** — iPhone or Android phone with Bluetooth
 
