@@ -7,34 +7,6 @@ import { Asset } from 'expo-asset';
 import FootModelInner from './FootModelInner';
 
 export default function ThreeJSFootVisualization() {
-  const [isModelReady, setIsModelReady] = useState(false);
-
-  // Pre-load the model asset
-  React.useEffect(() => {
-    async function prepareModel() {
-      try {
-        const asset = Asset.fromModule(require('../../assets/models/human_foot_base_mesh.glb'));
-        await asset.downloadAsync();
-        setIsModelReady(true);
-      } catch (error) {
-        console.error('Failed to load 3D model:', error);
-      }
-    }
-
-    prepareModel();
-  }, []);
-
-  if (!isModelReady) {
-    return (
-      <View style={styles.container}>
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator animating={true} size="large" />
-          <Text style={{ marginTop: 10 }}>Loading 3D Model...</Text>
-        </View>
-      </View>
-    );
-  }
-
   return (
     <View style={styles.container}>
       <Canvas camera={{ position: [3, 2, 3], fov: 50 }} style={{ width: "100%", height: "100%" }}>

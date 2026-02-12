@@ -364,18 +364,10 @@ export default function HomeScreen() {
             </View>
 
             <View
-              onTouchStart={() => {
-                console.log("Canvas touch start — disable scroll");
-                setScrollEnabled(false);
-              }}
-              onTouchEnd={() => {
-                console.log("Canvas touch end — enable scroll");
-                setTimeout(() => setScrollEnabled(true), 200);
-              }}
-              onTouchCancel={() => {
-                console.log("Canvas touch cancel — enable scroll");
-                setScrollEnabled(true);
-              }}
+              onStartShouldSetResponder={() => true}
+              onResponderGrant={() => setScrollEnabled(false)}
+              onResponderRelease={() => setScrollEnabled(true)}
+              onResponderTerminate={() => setScrollEnabled(true)}
               style={{ width: "100%", alignItems: "center" }}
             >
               <ThreeJSFootVisualization />
