@@ -44,6 +44,12 @@
     "plugins": [
       "expo-asset",
       "expo-font"
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "d184f26a-e3a0-41ce-b175-b719a119d73b"
+      }
+    },
+    "owner": "appdevin"
   }
 }
