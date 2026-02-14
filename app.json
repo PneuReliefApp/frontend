@@ -24,26 +24,26 @@
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#ffffff",
-        "permissions": [
-          "BLUETOOTH",
-          "BLUETOOTH_ADMIN",
-          "ACCESS_FINE_LOCATION",
-          "BLUETOOTH_SCAN",
-          "BLUETOOTH_CONNECT",
-          "BLUETOOTH_ADVERTISE"
-        ]
+        "backgroundColor": "#ffffff"
       },
-      "package": "com.anonymous.pneurelief_frontend",
+      "package": "com.melaniechoi2040.pneurelieffrontend",
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
-      "package": "com.melaniechoi2040.pneurelieffrontend"
+      "permissions": [
+        "BLUETOOTH",
+        "BLUETOOTH_ADMIN",
+        "ACCESS_FINE_LOCATION",
+        "BLUETOOTH_SCAN",
+        "BLUETOOTH_CONNECT",
+        "BLUETOOTH_ADVERTISE"
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
-      "expo-asset"
+      "expo-asset",
+      "expo-font"
     ]
   }
 }
